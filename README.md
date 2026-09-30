@@ -26,12 +26,6 @@ Set a unique `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and a 32+ character `ADMIN_AUTH
 
 ## 📦 Production Deployment
 
-### Free client preview on Render
-
-The included `render.yaml` creates a free, temporary client preview. It keeps the storefront, cart, Cash on Delivery checkout, and protected admin access available without collecting real payments. Preview data is temporary and can be lost whenever the free service restarts, so do not use it for real customer orders.
-
-Set `ADMIN_USERNAME` and `ADMIN_PASSWORD` when Render asks for them. Render generates `ADMIN_AUTH_SECRET` automatically. To make the site production-ready later, set `PREVIEW_MODE=false`, provide the live Razorpay and GSTIN variables from `.env.example`, and attach a persistent disk at `/app/data`.
-
 ### 1. Direct Cloud Host (Render / Railway / DigitalOcean / Cloud Run / VPS)
 
 Configure your service with the following settings:
@@ -48,6 +42,10 @@ Configure your service with the following settings:
 > **Persistent Storage**: To retain placed customer orders, inventory adjustments, and modified discounts across server redeployments, mount a persistent volume/disk to the `./data` directory.
 
 For this file-backed deployment, run exactly one application replica against that volume. Use PostgreSQL before scaling to multiple replicas.
+
+### Transactional order email
+
+When `RESEND_API_KEY` and `ORDER_EMAIL_FROM` are configured, every Cash on Delivery or WhatsApp order receives an email with its order ID, item list, total, and thank-you note. Paid online orders receive the same email after Razorpay confirms payment. Failed delivery never cancels the order, and its status is stored on the order record for review.
 
 ### DNS and domains
 
