@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Instagram, Phone, MessageSquare, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { api } from '../../services/api';
 
 interface FooterProps {
   onNavigate: (path: string) => void;
@@ -8,12 +9,23 @@ interface FooterProps {
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscriptionError, setSubscriptionError] = useState('');
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newsletterEmail) {
+    if (!newsletterEmail || subscribing) return;
+
+    setSubscribing(true);
+    setSubscriptionError('');
+    try {
+      await api.subscribeNewsletter(newsletterEmail);
       setSubscribed(true);
       setNewsletterEmail('');
+    } catch (error: any) {
+      setSubscriptionError(error.message || 'Could not register your email. Please try again.');
+    } finally {
+      setSubscribing(false);
     }
   };
 
@@ -158,7 +170,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('/faq')} className="hover:text-white transition-colors cursor-pointer">
+                <button onClick={() => onNavigate('/policies/faq')} className="hover:text-white transition-colors cursor-pointer">
                   Frequently Asked Questions
                 </button>
               </li>
@@ -193,12 +205,14 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   />
                   <button
                     type="submit"
-                    className="absolute right-1.5 top-1.5 bottom-1.5 px-3 glass-btn-primary rounded-lg text-xs font-sans font-semibold tracking-wider uppercase flex items-center justify-center cursor-pointer"
+                    disabled={subscribing}
+                    className="absolute right-1.5 top-1.5 bottom-1.5 px-3 glass-btn-primary rounded-lg text-xs font-sans font-semibold tracking-wider uppercase flex items-center justify-center cursor-pointer disabled:opacity-60"
                     aria-label="Subscribe"
                   >
                     <ArrowRight size={14} />
                   </button>
                 </div>
+                {subscriptionError && <p className="text-[11px] text-rose-300">{subscriptionError}</p>}
               </form>
             )}
             <div className="pt-2 text-[11px] text-white/45 flex items-center gap-1.5">

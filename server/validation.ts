@@ -106,6 +106,10 @@ export const contactSubmissionSchema = z.object({
   message: z.string().trim().min(5, 'Message must be at least 5 characters').max(2000),
 });
 
+export const newsletterSubscriptionSchema = z.object({
+  email: z.string().trim().email('Please enter a valid email address').max(254),
+});
+
 export const discountMutationSchema = z.object({
   code: z.string().trim().min(2).max(50).transform((s) => s.toUpperCase()),
   discountType: z.enum(['percentage', 'fixed']).default('percentage'),

@@ -83,7 +83,7 @@ const defaultDatabase: DatabaseSchema = {
     legalBusinessName: 'GlowWithSH Atelier Botanique',
     grievanceOfficerName: 'Shagufi Hussain',
     grievanceOfficerEmail: 'grievance@glowwithsh.com',
-    gstin: '07AAAAA0000A1Z5',
+    gstin: process.env.SITE_GSTIN?.trim().toUpperCase() || '',
   },
   contacts: [],
   reviews: [],
@@ -216,9 +216,6 @@ function migrateDatabaseSecurity(db: DatabaseSchema): boolean {
   }
   if (process.env.SITE_GSTIN && db.siteSettings.gstin !== process.env.SITE_GSTIN.trim().toUpperCase()) {
     db.siteSettings.gstin = process.env.SITE_GSTIN.trim().toUpperCase();
-    modified = true;
-  } else if (!db.siteSettings.gstin) {
-    db.siteSettings.gstin = '07AAAAA0000A1Z5';
     modified = true;
   }
 

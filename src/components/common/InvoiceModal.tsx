@@ -29,6 +29,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
 
   const invoiceNumber = `INV-${order.id.replace('ORD-', '')}`;
   const invoiceDate = formatDate(order.createdAt);
+  const hasGstin = Boolean(siteSettings.gstin?.trim());
 
   // Authoritative GST calculation & breakdown
   const isDelhi = order.taxSummary
@@ -38,10 +39,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
   const discountVal = order.discountAmount ?? order.discount ?? 0;
   const netSubtotal = Math.max(0, order.subtotal - discountVal);
 
-  const taxableAmount = order.taxSummary?.taxableAmount ?? Math.round(netSubtotal / 1.18);
-  const totalTax = order.taxSummary
+  const taxableAmount = hasGstin
+    ? (order.taxSummary?.taxableAmount ?? Math.round(netSubtotal / 1.18))
+    : netSubtotal;
+  const totalTax = hasGstin && order.taxSummary
     ? (order.taxSummary.cgst + order.taxSummary.sgst + order.taxSummary.igst)
-    : Math.max(0, netSubtotal - taxableAmount);
+    : hasGstin ? Math.max(0, netSubtotal - taxableAmount) : 0;
 
   const cgst = isDelhi ? (order.taxSummary?.cgst ?? Math.round(totalTax / 2)) : 0;
   const sgst = isDelhi ? (order.taxSummary?.sgst ?? (totalTax - cgst)) : 0;
@@ -55,7 +58,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#7C3AED]" />
             <span className="text-xs uppercase font-sans tracking-widest font-semibold text-[#1E1630]">
-              Official GST Tax Invoice &amp; Packaging Slip
+              {hasGstin ? 'Official GST Tax Invoice & Packaging Slip' : 'Order Invoice & Packaging Slip'}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -92,14 +95,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
               <div className="text-xs font-sans text-[#6B5F82] print:text-zinc-600 mt-3 leading-relaxed max-w-sm space-y-1">
                 <p><strong>Legal Entity:</strong> {siteSettings.legalBusinessName || 'GlowWithSH Atelier Botanique'}</p>
                 <p><strong>Registered Atelier:</strong> E Block street no 08, Pahadi mandir wali gali, Subhash Vihar, Delhi 110053, India</p>
-                <p><strong>GSTIN:</strong> {siteSettings.gstin || 'Not configured'}</p>
+                {hasGstin && <p><strong>GSTIN:</strong> {siteSettings.gstin}</p>}
                 <p><strong>Support:</strong> care@glowwithsh.com | WhatsApp: +91 7303490594</p>
               </div>
             </div>
 
             <div className="text-left sm:text-right font-sans">
               <span className="inline-block px-3 py-1 bg-[#F8F5FF] print:bg-zinc-100 border border-[#DDD6F3] rounded-lg text-xs font-mono font-semibold text-[#7C3AED] print:text-black mb-2">
-                TAX INVOICE (RULE 46 OF CGST RULES)
+                {hasGstin ? 'TAX INVOICE (RULE 46 OF CGST RULES)' : 'ORDER INVOICE'}
               </span>
               <p className="text-xs text-[#6B5F82] print:text-zinc-600">
                 Invoice No: <strong className="font-mono text-[#1E1630] print:text-black">{invoiceNumber}</strong>
@@ -187,7 +190,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
               <tbody className="divide-y divide-[#DDD6F3]">
                 {order.items.map((item, index) => {
                   const lineTotal = item.price * item.quantity;
-                  const itemTaxable = Math.round(lineTotal / 1.18);
+                  const itemTaxable = hasGstin ? Math.round(lineTotal / 1.18) : lineTotal;
                   return (
                     <tr key={index} className="text-[#1E1630] print:text-black">
                       <td className="py-3 text-[#6B5F82] print:text-zinc-600">{index + 1}</td>
@@ -196,12 +199,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
                         <span className="block text-[10px] font-mono text-[#6B5F82] print:text-zinc-500">{item.sku}</span>
                       </td>
                       <td className="py-3 text-center font-mono text-[11px] text-[#6B5F82] print:text-zinc-600">
-                        3304
+                         {hasGstin ? '3304' : '—'}
                       </td>
                       <td className="py-3 text-center">{item.quantity}</td>
                       <td className="py-3 text-right">{formatINR(item.price)}</td>
                       <td className="py-3 text-right font-mono">{formatINR(itemTaxable)}</td>
-                      <td className="py-3 text-right">18%</td>
+                       <td className="py-3 text-right">{hasGstin ? '18%' : '0%'}</td>
                       <td className="py-3 text-right font-semibold">
                         {formatINR(lineTotal)}
                       </td>
@@ -220,8 +223,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
                 <span>100% Genuine Handcrafted Botanical Care (Delhi Atelier)</span>
               </div>
               
-              {/* GST Tax Summary Box */}
+              {/* Tax Summary Box */}
               <div className="p-3 bg-[#F8F5FF] print:bg-zinc-50 border border-[#DDD6F3] rounded-xl space-y-1.5 font-mono text-[11px]">
+                {!hasGstin ? (
+                  <p className="font-sans font-semibold text-[#1E1630] print:text-black">
+                    GST not charged. Merchant GSTIN is not configured.
+                  </p>
+                ) : (
+                  <>
                 <p className="font-sans font-semibold text-[#1E1630] print:text-black uppercase text-[10px] tracking-wider">
                   Tax Breakdown ({isDelhi ? 'Intra-State Delhi: CGST 9% + SGST 9%' : 'Inter-State: IGST 18%'})
                 </p>
@@ -250,6 +259,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
                   <span>Total Tax Assessed:</span>
                   <span>{formatINR(totalTax)}</span>
                 </div>
+                  </>
+                )}
               </div>
             </div>
 

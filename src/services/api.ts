@@ -148,6 +148,19 @@ export const api = {
     return res.json();
   },
 
+  async subscribeNewsletter(email: string): Promise<{ success: boolean; alreadySubscribed: boolean }> {
+    const res = await fetch(`${API_BASE}/newsletter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to register email');
+    }
+    return res.json();
+  },
+
   async validateDiscount(
     code: string,
     subtotal = 0

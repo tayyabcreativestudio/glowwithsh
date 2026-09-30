@@ -127,7 +127,11 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, onUpdateOrderS
 
   // Helper to construct WhatsApp update message to customer
   const getWhatsAppTrackingUrl = (order: Order) => {
-    const trackingLink = `${window.location.origin}/track-order?orderId=${encodeURIComponent(order.id)}`;
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const storefrontOrigin = isLocal
+      ? `http://${window.location.hostname}:5173`
+      : 'https://www.glowwithsh.com';
+    const trackingLink = `${storefrontOrigin}/track-order?orderId=${encodeURIComponent(order.id)}`;
     const msg = encodeURIComponent(
       `Hello ${order.customerName}!\n\n` +
       `Your GlowWithSH order *${order.id}* status is: *${order.orderStatus.toUpperCase()}*.\n` +

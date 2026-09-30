@@ -1,6 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { orderSubmissionSchema } from '../server/validation';
+import { getIndiaOrderDateKey } from '../server/order-id';
 
 describe('PHASE 4: Order Price & Business Logic Integrity', () => {
   const validOrderPayload = {
@@ -198,5 +199,15 @@ describe('PHASE 4: Order Price & Business Logic Integrity', () => {
 
     const discountAmount = Math.round((currentSubtotal * validCoupon.discountPercent) / 100);
     assert.equal(discountAmount, 200, 'Discount must be accurately 10% of 2000 = 200');
+  });
+});
+
+describe('Order reference date', () => {
+  test('uses the India calendar date around the UTC day boundary', () => {
+    assert.equal(getIndiaOrderDateKey(new Date('2026-09-30T18:40:00.000Z')), '20261001');
+  });
+
+  test('keeps the same date during daytime in India', () => {
+    assert.equal(getIndiaOrderDateKey(new Date('2026-10-01T06:30:00.000Z')), '20261001');
   });
 });

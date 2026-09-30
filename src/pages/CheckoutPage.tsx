@@ -605,7 +605,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <span>{shippingFee === 0 ? 'Complimentary' : formatINR(shippingFee)}</span>
                 </div>
                 <div className="flex justify-between text-emerald-800">
-                  <span>Taxes (GST Included)</span>
+                  <span>Taxes included where applicable</span>
                   <span>₹0 Extra</span>
                 </div>
               </div>

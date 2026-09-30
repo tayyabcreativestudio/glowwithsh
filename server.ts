@@ -58,10 +58,12 @@ import {
   adminChangePasswordSchema,
   reviewSubmissionSchema,
   contactSubmissionSchema,
+  newsletterSubscriptionSchema,
   productMutationSchema,
   discountMutationSchema,
 } from './server/validation';
 import { generateSeoSuggestion } from './server/seo-ai';
+import { getIndiaOrderDateKey } from './server/order-id';
 
 // Assert production secrets on startup
 requireConfiguredAuthSecret();
@@ -71,6 +73,7 @@ assertRazorpayConfiguration();
 loadDatabase();
 
 const app = express();
+app.disable('x-powered-by');
 // Required when TLS is terminated by the deployment platform's reverse proxy.
 app.set('trust proxy', 1);
 const STOREFRONT_PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5173;
@@ -1151,16 +1154,17 @@ app.post('/api/orders', ordersRateLimiter, async (req: Request, res: Response) =
         }
       }
 
-      // 5. Authoritative GST calculation (HSN 3304: Skincare preparations, standard 18% GST in India)
+      // 5. GST is applied only after the merchant configures a real GSTIN.
+      const gstEnabled = Boolean(db.siteSettings.gstin?.trim());
       const isDelhiIntraState = customer.state.toLowerCase().includes('delhi');
       const taxableValue = Math.max(0, subtotal - discount);
-      const gstRate = 18;
+      const gstRate = gstEnabled ? 18 : 0;
       const totalTax = Math.round((taxableValue * gstRate) / (100 + gstRate)); // GST inclusive calculation
       const cgst = isDelhiIntraState ? Math.round(totalTax / 2) : 0;
       const sgst = isDelhiIntraState ? Math.round(totalTax / 2) : 0;
       const igst = isDelhiIntraState ? 0 : totalTax;
 
-      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const dateStr = getIndiaOrderDateKey();
       const orderNumber = Math.floor(1000 + Math.random() * 9000);
       const orderId = `ORD-${dateStr}-${orderNumber}`;
 
@@ -1978,6 +1982,39 @@ app.patch('/api/admin/site-settings', (req: Request, res: Response) => {
 // ----------------------------------------------------
 // 11. CONTACT INQUIRIES
 // ----------------------------------------------------
+app.post('/api/newsletter', contactsRateLimiter, (req: Request, res: Response) => {
+  const parseResult = newsletterSubscriptionSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({ error: parseResult.error.issues[0]?.message || 'Invalid email address' });
+  }
+
+  const email = parseResult.data.email.toLowerCase();
+  const db = getDatabase();
+  const alreadySubscribed = db.contacts.some(
+    (contact) => contact.subject === 'Newsletter subscription' && contact.email?.toLowerCase() === email,
+  );
+
+  if (alreadySubscribed) {
+    return res.json({ success: true, alreadySubscribed: true });
+  }
+
+  const inquiry: ContactInquiry = {
+    id: `cnt-newsletter-${Date.now()}`,
+    name: 'Newsletter subscriber',
+    phone: '',
+    email,
+    subject: 'Newsletter subscription',
+    message: 'Subscribed to The Ritual Letter through the storefront footer.',
+    status: 'unread',
+    createdAt: new Date().toISOString(),
+  };
+
+  db.contacts.unshift(inquiry);
+  logActivity('Newsletter Signup', 'Contacts', inquiry.id, `New Ritual Letter signup: ${email}`);
+  saveDatabase(db);
+  res.status(201).json({ success: true, alreadySubscribed: false });
+});
+
 app.post('/api/contacts', contactsRateLimiter, (req: Request, res: Response) => {
   const parseResult = contactSubmissionSchema.safeParse(req.body);
   if (!parseResult.success) {

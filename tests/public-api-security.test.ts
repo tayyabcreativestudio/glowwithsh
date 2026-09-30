@@ -4,6 +4,7 @@ import { sanitizeString } from '../server/security';
 import {
   reviewSubmissionSchema,
   contactSubmissionSchema,
+  newsletterSubscriptionSchema,
 } from '../server/validation';
 
 describe('PHASE 6, 7 & 9: Public API Exposure, Uploads & XSS Protection', () => {
@@ -125,6 +126,11 @@ describe('PHASE 6, 7 & 9: Public API Exposure, Uploads & XSS Protection', () => 
       message: 'Hello I have a question about delivery',
     });
     assert.equal(badContact.success, false, 'Invalid email in contact form must be rejected');
+  });
+
+  test('Newsletter signup validates email addresses', () => {
+    assert.equal(newsletterSubscriptionSchema.safeParse({ email: 'customer@example.com' }).success, true);
+    assert.equal(newsletterSubscriptionSchema.safeParse({ email: 'not-an-email' }).success, false);
   });
 
   test('File upload validation strictly allows only JPEG, PNG, WebP and rejects executables/SVGs', () => {
