@@ -14,7 +14,7 @@ export async function generateSeoSuggestion(input: { name: string; description: 
   if (cached && cached.expiresAt > Date.now()) return cached.value;
   const client = new GoogleGenAI({ apiKey });
   const response = await client.models.generateContent({
-    model: process.env.GEMINI_SEO_MODEL?.trim() || 'gemini-2.5-flash-lite',
+    model: process.env.GEMINI_SEO_MODEL?.trim() || 'gemini-3.5-flash-lite',
     contents: compactInput,
     config: {
       systemInstruction: 'You are a careful ecommerce on-page SEO editor for GlowWithSH, an Indian skincare brand. Suggest factual wording only from supplied information. Do not invent ingredients, clinical results, certifications, prices, or rankings. Avoid medical promises and keyword stuffing. Return compact JSON only with title (50-65 characters), description (140-160 characters), focusKeyword, and up to 3 short suggestions.',
