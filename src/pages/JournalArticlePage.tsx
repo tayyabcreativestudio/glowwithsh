@@ -2,6 +2,7 @@ import React from 'react';
 import { BlogPost, Product } from '../types';
 import { formatDate } from '../utils/format';
 import { ProductCard } from '../components/storefront/ProductCard';
+import { usePageSeo } from '../utils/seo';
 import { Clock, ArrowLeft, Share2, Sparkles, User, Check } from 'lucide-react';
 
 interface JournalArticlePageProps {
@@ -17,6 +18,7 @@ export const JournalArticlePage: React.FC<JournalArticlePageProps> = ({
   onBack,
   onSelectProduct,
 }) => {
+  usePageSeo({ title: post.seoTitle || `${post.title} | GlowWithSH Journal`, description: post.seoDescription || post.excerpt, canonical: `https://www.glowwithsh.com/journal/${encodeURIComponent(post.slug)}`, image: post.coverImage, schema: { '@context': 'https://schema.org', '@type': 'Article', headline: post.title, description: post.excerpt, image: [post.coverImage], datePublished: post.publishedAt, author: { '@type': 'Person', name: post.author } } });
   const [copied, setCopied] = React.useState(false);
 
   const relatedProducts = allProducts.filter((p) =>

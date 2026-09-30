@@ -6,6 +6,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { Badge } from '../components/common/Badge';
 import { ProductCard } from '../components/storefront/ProductCard';
 import { api } from '../services/api';
+import { usePageSeo } from '../utils/seo';
 import {
   Plus,
   Minus,
@@ -37,6 +38,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   onNavigateToCheckout,
   onBackToShop,
 }) => {
+  const canonical = `https://www.glowwithsh.com/product/${encodeURIComponent(product.slug)}`;
+  usePageSeo({ title: product.seoTitle || `${product.name} | GlowWithSH`, description: product.seoDescription || product.shortDescription, canonical, image: product.primaryImage, schema: { '@context': 'https://schema.org', '@type': 'Product', name: product.name, description: product.shortDescription, image: [product.primaryImage], sku: product.sku, offers: { '@type': 'Offer', priceCurrency: 'INR', price: product.price, availability: product.stockQuantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock', url: canonical } } });
   const { addToCart, setIsCartOpen } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isWishlisted = isInWishlist(product.id);

@@ -4,6 +4,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import compression from 'compression';
+import { z } from 'zod';
 import { createServer as createViteServer } from 'vite';
 import {
   getDatabase,
@@ -60,6 +61,7 @@ import {
   productMutationSchema,
   discountMutationSchema,
 } from './server/validation';
+import { generateSeoSuggestion } from './server/seo-ai';
 
 // Assert production secrets on startup
 requireConfiguredAuthSecret();
@@ -454,6 +456,25 @@ app.use('/api/admin', (req: Request, res: Response, next: NextFunction) => {
 // ----------------------------------------------------
 // 3. PRODUCTS API
 // ----------------------------------------------------
+const seoAssistantRateLimiter = createRateLimiter(15 * 60_000, 12, 'seo-assistant');
+
+app.post('/api/admin/seo/suggest', seoAssistantRateLimiter, async (req: Request, res: Response) => {
+  const input = z.object({
+    name: z.string().trim().min(2).max(140),
+    description: z.string().trim().min(20).max(2000),
+    currentTitle: z.string().max(100).optional(),
+    currentDescription: z.string().max(400).optional(),
+    category: z.string().max(80).optional(),
+  }).safeParse(req.body);
+  if (!input.success) return res.status(400).json({ error: 'Provide a product name and a description of at least 20 characters.' });
+  try {
+    const suggestion = await generateSeoSuggestion(input.data);
+    res.json({ success: true, suggestion });
+  } catch (error: any) {
+    res.status(503).json({ error: error.message || 'SEO assistant is temporarily unavailable.' });
+  }
+});
+
 app.get('/api/products', (req: Request, res: Response) => {
   const db = getDatabase();
   let results = [...db.products];

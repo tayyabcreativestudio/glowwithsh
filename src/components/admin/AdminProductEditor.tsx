@@ -85,6 +85,8 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
   const [seoTitle, setSeoTitle] = useState(product?.seoTitle || '');
   const [seoDescription, setSeoDescription] = useState(product?.seoDescription || '');
   const [isEditingSeo, setIsEditingSeo] = useState(Boolean(product?.seoTitle || product?.seoDescription));
+  const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
+  const [seoAssistantNote, setSeoAssistantNote] = useState('');
 
   // Saving state
   const [saving, setSaving] = useState(false);
@@ -119,6 +121,26 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
   const parsedCost = Number(costPrice) || 0;
   const profit = parsedCost > 0 ? parsedPrice - parsedCost : 0;
   const marginPercentage = parsedPrice > 0 && parsedCost > 0 ? Math.round(((parsedPrice - parsedCost) / parsedPrice) * 100) : 0;
+
+  const generateSeoSuggestion = async () => {
+    if (name.trim().length < 2 || (shortDescription || description).trim().length < 20) {
+      setSeoAssistantNote('Add a product name and at least a short description first.');
+      return;
+    }
+    setIsGeneratingSeo(true);
+    setSeoAssistantNote('');
+    try {
+      const suggestion = await api.adminSuggestSeo({ name, description: shortDescription || description, currentTitle: seoTitle, currentDescription: seoDescription, category: categories.find((item) => item.id === categoryId)?.name });
+      setSeoTitle(suggestion.title);
+      setSeoDescription(suggestion.description);
+      setIsEditingSeo(true);
+      setSeoAssistantNote(`Suggested focus: ${suggestion.focusKeyword}${suggestion.suggestions.length ? ` · ${suggestion.suggestions[0]}` : ''}`);
+    } catch (error: any) {
+      setSeoAssistantNote(error.message || 'SEO suggestion could not be generated.');
+    } finally {
+      setIsGeneratingSeo(false);
+    }
+  };
 
   // File Upload Handlers (Shopify media experience)
   const handleFilesSelected = async (files: FileList | null) => {
@@ -760,6 +782,14 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
             </div>
 
             {/* Editable SEO Fields */}
+            <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#E1E3E5]">
+              <button type="button" onClick={generateSeoSuggestion} disabled={isGeneratingSeo} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#202223] text-white text-xs font-semibold disabled:opacity-60">
+                {isGeneratingSeo ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                {isGeneratingSeo ? 'Generating…' : 'Suggest SEO with Gemini'}
+              </button>
+              <span className="text-[11px] text-[#6D7175]">Suggestions only — review before saving.</span>
+              {seoAssistantNote && <p className="basis-full text-xs text-[#4B5563]">{seoAssistantNote}</p>}
+            </div>
             {isEditingSeo && (
               <div className="space-y-4 pt-2 border-t border-[#E1E3E5]">
                 <div>

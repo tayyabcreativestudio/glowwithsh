@@ -695,6 +695,16 @@ export const api = {
     return res.json();
   },
 
+  async adminSuggestSeo(input: { name: string; description: string; currentTitle?: string; currentDescription?: string; category?: string }): Promise<{ title: string; description: string; focusKeyword: string; suggestions: string[] }> {
+    const res = await fetch(`${API_BASE}/admin/seo/suggest`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(input) });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to generate SEO suggestions');
+    }
+    const payload = await res.json();
+    return payload.suggestion;
+  },
+
   async adminResetDatabase(): Promise<{ success: boolean; count: number; message: string }> {
     const res = await fetch(`${API_BASE}/admin/reset-database`, {
       method: 'POST',
