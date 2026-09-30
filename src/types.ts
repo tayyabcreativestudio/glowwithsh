@@ -138,12 +138,6 @@ export interface Order {
   refundId?: string;
   refundAmount?: number;
   refundStatus?: string;
-  orderConfirmationEmail?: {
-    status: 'sent' | 'failed' | 'skipped';
-    attemptedAt: string;
-    providerId?: string;
-    error?: string;
-  };
   taxSummary?: {
     taxableAmount: number;
     cgst: number;

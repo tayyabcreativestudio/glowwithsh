@@ -43,10 +43,6 @@ Configure your service with the following settings:
 
 For this file-backed deployment, run exactly one application replica against that volume. Use PostgreSQL before scaling to multiple replicas.
 
-### Transactional order email
-
-When `RESEND_API_KEY` and `ORDER_EMAIL_FROM` are configured, every Cash on Delivery or WhatsApp order receives an email with its order ID, item list, total, and thank-you note. Paid online orders receive the same email after Razorpay confirms payment. Failed delivery never cancels the order, and its status is stored on the order record for review.
-
 ### DNS and domains
 
 Point `www.glowwithsh.com` and `admin.glowwithsh.com` to the same application service. Configure the platform to terminate HTTPS and forward the original host header. Requests to `glowwithsh.com` redirect to `www.glowwithsh.com`.

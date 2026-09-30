@@ -60,7 +60,6 @@ import {
   productMutationSchema,
   discountMutationSchema,
 } from './server/validation';
-import { queueOrderConfirmationEmail } from './server/notifications';
 
 // Assert production secrets on startup
 requireConfiguredAuthSecret();
@@ -1210,7 +1209,6 @@ app.post('/api/orders', ordersRateLimiter, async (req: Request, res: Response) =
       order: createdOrder,
       whatsappUrl,
     });
-    if (createdOrder.paymentMethod !== 'online_ready') queueOrderConfirmationEmail(createdOrder.id);
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'Failed to place order.' });
   }
@@ -1416,7 +1414,6 @@ app.post('/api/payments/verify', paymentRateLimiter, async (req: Request, res: R
       order: verifiedOrder.order,
       message: 'Payment verified and order confirmed successfully',
     });
-    if (!verifiedOrder.alreadyPaid) queueOrderConfirmationEmail(verifiedOrder.order.id);
   } catch (err: any) {
     res.status(400).json({ success: false, error: err.message });
   }
