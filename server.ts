@@ -170,26 +170,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   if (!isAdminContext) {
     // Strictly block administrative APIs on Storefront port / domain
     if (req.path.startsWith('/api/admin') || req.path === '/api/upload') {
-      const adminTarget =
-        process.env.NODE_ENV === 'production'
-          ? `https://admin.${hostname.replace(/^www\./, '')}/admin`
-          : `http://${hostname}:${ADMIN_PORT}/admin`;
-
       res.status(403).json({
         success: false,
         error: `Access denied: Administrative APIs are strictly restricted to the Admin Subdomain / Port (${ADMIN_PORT}).`,
-        adminUrl: adminTarget,
       });
-      return;
-    }
-
-    // Redirect browser navigation to /admin or /admin-login to the Admin portal
-    if (req.path === '/admin' || req.path.startsWith('/admin/') || req.path === '/admin-login') {
-      const targetUrl =
-        process.env.NODE_ENV === 'production'
-          ? `https://admin.${hostname.replace(/^www\./, '')}${req.originalUrl}`
-          : `http://${hostname}:${ADMIN_PORT}${req.originalUrl}`;
-      res.redirect(302, targetUrl);
       return;
     }
   }

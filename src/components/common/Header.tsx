@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, Menu, X, Sparkles, UserCheck, Truck, Heart } from 'lucide-react';
+import { Search, ShoppingBag, Menu, X, Sparkles, Truck, Heart } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 
@@ -92,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenS
             })}
           </nav>
 
-          {/* Right: Actions (Search, Admin Portal, Cart, Mobile Menu) */}
+          {/* Right: Actions (Search, Wishlist, Cart, Mobile Menu) */}
           <div className="flex items-center space-x-3 sm:space-x-5">
             {/* Search Icon */}
             <button
@@ -118,17 +118,6 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenS
                   {wishlistCount}
                 </span>
               )}
-            </button>
-
-            {/* Admin shortcut button */}
-            <button
-              id="nav-admin-portal-button"
-              onClick={() => handleLinkClick('/admin')}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-wider font-sans font-medium text-[#6B5F82] hover:text-[#7C3AED] glass-btn-secondary rounded-lg transition-all"
-              title="Admin CMS & Orders Management"
-            >
-              <UserCheck size={13} className="text-[#A78BFA]" />
-              <span>Admin</span>
             </button>
 
             {/* Cart Icon & Live Count */}
@@ -209,13 +198,6 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenS
                 >
                   <Heart size={16} className="text-[#A78BFA]" />
                   <span>Saved Rituals ({wishlistCount})</span>
-                </button>
-                <button
-                  onClick={() => handleLinkClick('/admin')}
-                  className="flex items-center gap-2 text-sm uppercase tracking-wider font-sans text-[#6B5F82] hover:text-[#7C3AED] py-2 cursor-pointer"
-                >
-                  <UserCheck size={16} className="text-[#A78BFA]" />
-                  <span>Admin Dashboard</span>
                 </button>
               </div>
             </nav>

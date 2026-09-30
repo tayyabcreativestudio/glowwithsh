@@ -211,23 +211,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-white/45 font-sans gap-4">
           <p>© {new Date().getFullYear()} GlowWithSH. All rights reserved. Founded &amp; Owned by Shagufi Hussain.</p>
-          <div className="flex items-center space-x-5">
-            <span>Subhash Vihar, Delhi 110053</span>
-            <span>•</span>
-            <a
-              href={
-                typeof window !== 'undefined' &&
-                window.location.hostname !== 'localhost' &&
-                window.location.hostname !== '127.0.0.1'
-                  ? `https://admin.${window.location.hostname.replace(/^www\./, '')}/admin`
-                  : `http://${(typeof window !== 'undefined' && window.location.hostname) || 'localhost'}:5174/admin`
-              }
-              className="text-white/35 hover:text-white transition-colors cursor-pointer underline"
-              title="Access the isolated Admin Console"
-            >
-              Admin Console (Port 5174)
-            </a>
-          </div>
+          <span>Subhash Vihar, Delhi 110053</span>
         </div>
       </div>
     </footer>

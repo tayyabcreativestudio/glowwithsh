@@ -104,16 +104,6 @@ export function isAdminDomainOrPort(): boolean {
   );
 }
 
-export function getAdminPortalUrl(path = '/admin'): string {
-  if (typeof window === 'undefined') return `http://localhost:5174${path}`;
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `http://${hostname}:5174${path}`;
-  }
-  const cleanHost = hostname.replace(/^www\./, '').replace(/^admin\./, '');
-  return `https://admin.${cleanHost}${path}`;
-}
-
 export function getStorefrontUrl(path = '/'): string {
   if (typeof window === 'undefined') return `http://localhost:5173${path}`;
   const hostname = window.location.hostname;
@@ -135,12 +125,9 @@ function parseLocationToRoute(pathname: string, search: string): AppRoute {
     }
   }
 
-  // If on Storefront port (5173) and accessing admin routes, redirect to Admin Port
+  // Keep the customer storefront separate from the private admin portal.
   if (!isAdminDomainOrPort() && (cleanPath.startsWith('/admin') || cleanPath === '/admin-login')) {
-    if (typeof window !== 'undefined') {
-      window.location.href = getAdminPortalUrl(cleanPath);
-      return { view: 'home' };
-    }
+    return { view: '404' };
   }
 
   if (cleanPath === '/' || cleanPath === '/home') {
