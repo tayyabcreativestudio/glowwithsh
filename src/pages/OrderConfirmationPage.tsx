@@ -108,7 +108,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
         </div>
         <h2 className="font-serif text-2xl text-[#1E1630] mb-2">No Active Order Found</h2>
         <p className="text-sm font-sans text-[#6B5F82] max-w-md mb-6 leading-relaxed">
-          We could not locate this order session. If you just placed an order, please check your WhatsApp or SMS for confirmation details.
+          We could not locate this order session. If you just placed an order, return to order tracking and use the order ID shown after checkout with your 10-digit mobile number.
         </p>
         <button
           onClick={onContinueShopping}

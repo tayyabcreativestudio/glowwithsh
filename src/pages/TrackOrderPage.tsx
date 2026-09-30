@@ -277,7 +277,7 @@ export const TrackOrderPage: React.FC<TrackOrderPageProps> = ({
               <div className="space-y-1">
                 <p className="font-semibold">{error}</p>
                 <p className="text-amber-800">
-                  Tip: Verify whether you received the order confirmation SMS/WhatsApp, or search using the 10-digit mobile number entered during checkout.
+                  Tip: Use the order ID shown on the confirmation page and the 10-digit mobile number entered during checkout.
                 </p>
               </div>
             </div>
