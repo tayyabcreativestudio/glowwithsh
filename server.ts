@@ -567,6 +567,11 @@ app.post('/api/admin/products', (req: Request, res: Response) => {
   const raw = parseResult.data;
   const db = getDatabase();
 
+  const requestedSku = raw.sku?.trim().toUpperCase();
+  if (requestedSku && db.products.some((product) => product.sku.trim().toUpperCase() === requestedSku)) {
+    return res.status(409).json({ error: `A product with SKU ${requestedSku} already exists.` });
+  }
+
   const id = `prod-${Date.now()}`;
   let baseSlug = generateSlug(raw.name) || 'product';
   let slug = baseSlug;
@@ -579,7 +584,7 @@ app.post('/api/admin/products', (req: Request, res: Response) => {
 
   const newProduct: Product = {
     id,
-    sku: raw.sku ? raw.sku.trim().toUpperCase() : `GW-${Date.now().toString().slice(-6)}`,
+    sku: requestedSku || `GW-${Date.now().toString().slice(-6)}`,
     name: sanitizeString(raw.name),
     slug,
     categoryId: category.id,
@@ -654,6 +659,28 @@ app.patch('/api/admin/products/:id', (req: Request, res: Response) => {
 
   const existing = db.products[index];
   const updates = req.body;
+
+  if (typeof updates.sku === 'string') {
+    const requestedSku = updates.sku.trim().toUpperCase();
+    const skuBelongsToAnotherProduct = db.products.some(
+      (product) => product.id !== id && product.sku.trim().toUpperCase() === requestedSku,
+    );
+    if (skuBelongsToAnotherProduct) {
+      return res.status(409).json({ error: `A product with SKU ${requestedSku} already exists.` });
+    }
+    updates.sku = requestedSku;
+  }
+
+  if (typeof updates.slug === 'string') {
+    const requestedSlug = generateSlug(updates.slug);
+    const slugBelongsToAnotherProduct = db.products.some(
+      (product) => product.id !== id && product.slug === requestedSlug,
+    );
+    if (slugBelongsToAnotherProduct) {
+      return res.status(409).json({ error: `The product URL “${requestedSlug}” is already in use.` });
+    }
+    updates.slug = requestedSlug;
+  }
 
   if (updates.stockQuantity !== undefined && Number(updates.stockQuantity) !== existing.stockQuantity) {
     const prev = existing.stockQuantity;

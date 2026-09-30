@@ -210,6 +210,7 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
       const computedSeoDescription = (seoDescription || shortDescription.trim() || description.trim()).slice(0, 320);
 
       const payload: Partial<Product> = {
+        id: product?.id,
         name: name.trim(),
         slug: slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         sku: sku.trim() || `GW-${Date.now().toString().slice(-4)}`,

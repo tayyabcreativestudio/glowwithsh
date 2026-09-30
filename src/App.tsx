@@ -188,8 +188,11 @@ function parseLocationToRoute(pathname: string, search: string): AppRoute {
   }
   if (cleanPath === '/admin-login') return { view: 'admin-login' };
   if (cleanPath.startsWith('/admin')) {
-    const tabMatch = cleanPath.split('/')[2] || query.get('tab') || 'dashboard';
-    return { view: 'admin', tab: tabMatch };
+    const pathParts = cleanPath.split('/');
+    const tabMatch = pathParts[2] || query.get('tab') || 'dashboard';
+    const encodedProductId = tabMatch === 'product-edit' ? pathParts[3] : undefined;
+    const editProductId = encodedProductId ? decodeURIComponent(encodedProductId) : undefined;
+    return { view: 'admin', tab: tabMatch, editProductId };
   }
   if (cleanPath.startsWith('/policies')) {
     const tabMatch = (cleanPath.split('/')[2] || query.get('tab') || 'shipping') as any;
@@ -242,7 +245,9 @@ function routeToPath(route: AppRoute): string {
     case 'admin-login':
       return '/admin-login';
     case 'admin':
-      return `/admin/${route.tab || 'dashboard'}`;
+      return route.tab === 'product-edit' && route.editProductId
+        ? `/admin/product-edit/${encodeURIComponent(route.editProductId)}`
+        : `/admin/${route.tab || 'dashboard'}`;
     case '404':
       return '/404';
   }
@@ -458,10 +463,11 @@ export const AppContent: React.FC = () => {
   };
 
   // Handlers for Products
-  const handleSaveProduct = async (productData: Partial<Product>) => {
+  const handleSaveProduct = async (productData: Partial<Product>, productId?: string) => {
     try {
-      if (productData.id) {
-        await api.adminUpdateProduct(productData.id, productData);
+      const targetProductId = productId || productData.id;
+      if (targetProductId) {
+        await api.adminUpdateProduct(targetProductId, productData);
         showToast('Formulation updated successfully');
       } else {
         await api.adminCreateProduct(productData);
@@ -726,6 +732,9 @@ export const AppContent: React.FC = () => {
     }
 
     const currentTab = route.tab || 'dashboard';
+    const productBeingEdited = route.editProductId
+      ? products.find((product) => product.id === route.editProductId)
+      : undefined;
 
     return (
       <Suspense fallback={<AtelierPageFallback />}>
@@ -769,14 +778,30 @@ export const AppContent: React.FC = () => {
           />
         )}
 
-        {currentTab === 'product-edit' && (
+        {currentTab === 'product-edit' && productBeingEdited && (
           <AdminProductEditor
-            product={products.find((p) => p.id === route.editProductId) || null}
+            product={productBeingEdited}
             categories={categories}
             existingProducts={products}
-            onSave={handleSaveProduct}
+            onSave={(productData) => handleSaveProduct(productData, productBeingEdited.id)}
             onCancel={() => navigate({ view: 'admin', tab: 'products' })}
           />
+        )}
+
+        {currentTab === 'product-edit' && !productBeingEdited && (
+          <div className="mx-auto max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
+            <h2 className="font-serif text-2xl text-[#2A211F]">Product not found</h2>
+            <p className="mt-2 text-sm text-[#6B5F5B]">
+              This edit link is incomplete or the product has been removed.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate({ view: 'admin', tab: 'products' })}
+              className="mt-5 rounded-lg bg-[#2A211F] px-5 py-3 text-xs font-semibold uppercase tracking-wider text-white"
+            >
+              Return to products
+            </button>
+          </div>
         )}
 
         {currentTab === 'inventory' && (
