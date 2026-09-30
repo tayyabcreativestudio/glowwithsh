@@ -30,8 +30,9 @@ export function getRazorpayConfig(): RazorpayConfig {
  */
 export function assertRazorpayConfiguration(): void {
   const cfg = getRazorpayConfig();
+  const isPreviewMode = process.env.PREVIEW_MODE === 'true';
 
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && !isPreviewMode) {
     if (!cfg.keyId || !cfg.keySecret) {
       throw new Error('FATAL: Razorpay live API credentials (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET) are required in production.');
     }

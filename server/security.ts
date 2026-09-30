@@ -30,6 +30,7 @@ export function getAuthSecret(): string {
 }
 
 export function requireConfiguredAuthSecret(): void {
+  const isPreviewMode = process.env.PREVIEW_MODE === 'true';
   const secret = process.env.ADMIN_AUTH_SECRET?.trim();
   if (process.env.NODE_ENV === 'production' && (!secret || secret.length < 32)) {
     throw new Error('FATAL: ADMIN_AUTH_SECRET is required and must be at least 32 characters in production.');
@@ -46,7 +47,7 @@ export function requireConfiguredAuthSecret(): void {
   }
 
   const gstin = process.env.SITE_GSTIN?.trim().toUpperCase();
-  if (process.env.NODE_ENV === 'production' && (!gstin || !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin))) {
+  if (process.env.NODE_ENV === 'production' && !isPreviewMode && (!gstin || !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin))) {
     throw new Error('FATAL: SITE_GSTIN must be a valid registered GSTIN in production.');
   }
 }

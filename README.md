@@ -26,6 +26,12 @@ Set a unique `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and a 32+ character `ADMIN_AUTH
 
 ## 📦 Production Deployment
 
+### Free client preview on Render
+
+The included `render.yaml` creates a free, temporary client preview. It keeps the storefront, cart, Cash on Delivery checkout, and protected admin access available without collecting real payments. Preview data is temporary and can be lost whenever the free service restarts, so do not use it for real customer orders.
+
+Set `ADMIN_USERNAME` and `ADMIN_PASSWORD` when Render asks for them. Render generates `ADMIN_AUTH_SECRET` automatically. To make the site production-ready later, set `PREVIEW_MODE=false`, provide the live Razorpay and GSTIN variables from `.env.example`, and attach a persistent disk at `/app/data`.
+
 ### 1. Direct Cloud Host (Render / Railway / DigitalOcean / Cloud Run / VPS)
 
 Configure your service with the following settings:

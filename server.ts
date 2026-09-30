@@ -1261,6 +1261,10 @@ app.post('/api/orders/:id/switch-to-cod', paymentRateLimiter, async (req: Reques
 // 5.1 ONLINE PAYMENTS API (REAL RAZORPAY INTEGRATION)
 // ----------------------------------------------------
 app.post('/api/payments/create-intent', paymentRateLimiter, async (req: Request, res: Response) => {
+  if (process.env.PREVIEW_MODE === 'true') {
+    return res.status(503).json({ error: 'Online payments are disabled in this preview. Please use Cash on Delivery to test checkout.' });
+  }
+
   const parseResult = paymentIntentSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res.status(400).json({ error: 'Order ID is required to create payment intent' });
