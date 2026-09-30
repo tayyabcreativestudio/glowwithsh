@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix GlowWithSH",
+  "description": "Luxury skincare and beauty rituals founded by Shagufi Hussain, featuring premium formulas, complete shop catalog, cart, and Shopify-style management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

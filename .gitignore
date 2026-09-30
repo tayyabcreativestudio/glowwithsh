@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build artifacts
+dist/
+build/
+coverage/
+
+# Environment files and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+
+# Runtime persistent data (prevent customer PII / hashes from entering git)
+data/db.json
+data/*.bak
+data/*.tmp*
+data/migrated_pg_dump.sql
+
+# Persistent user uploads
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Logs and debugging
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+bun.lock
+
+# Local tooling and generated audit packages
+.tools/
+.audit-runtime/
+GlowWithSH_FINAL_AUDIT_BUNDLE.zip
+GlowWithSH_patched_source.zip
+GlowWithSH_production_fixes.patch

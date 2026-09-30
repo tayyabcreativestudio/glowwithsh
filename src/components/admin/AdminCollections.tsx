@@ -1,0 +1,233 @@
+import React, { useState } from 'react';
+import { Category, Product } from '../../types';
+import { Plus, Edit, Trash2, Layers, Image as ImageIcon } from 'lucide-react';
+
+interface AdminCollectionsProps {
+  categories: Category[];
+  products: Product[];
+  onSaveCategory: (cat: Partial<Category>) => Promise<void>;
+  onDeleteCategory: (catId: string) => Promise<void>;
+}
+
+export const AdminCollections: React.FC<AdminCollectionsProps> = ({
+  categories,
+  products,
+  onSaveCategory,
+  onDeleteCategory,
+}) => {
+  const [editingCat, setEditingCat] = useState<Category | null>(null);
+  const [isNew, setIsNew] = useState(false);
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleOpenNew = () => {
+    setEditingCat(null);
+    setIsNew(true);
+    setName('');
+    setSlug('');
+    setDescription('');
+    setImageUrl('https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?q=80&w=800&auto=format&fit=crop');
+  };
+
+  const handleOpenEdit = (cat: Category) => {
+    setEditingCat(cat);
+    setIsNew(false);
+    setName(cat.name);
+    setSlug(cat.slug);
+    setDescription(cat.description || '');
+    setImageUrl(cat.image || '');
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSaveCategory({
+        id: editingCat?.id,
+        name,
+        slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        description,
+        image: imageUrl,
+      });
+      setEditingCat(null);
+      setIsNew(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="font-serif text-2xl sm:text-3xl text-[#241E1C]">
+            Collections &amp; Categories ({categories.length})
+          </h2>
+          <p className="text-xs font-sans text-[#665D58] mt-0.5">
+            Organize formulations into intuitive skincare ritual collections.
+          </p>
+        </div>
+
+        <button
+          onClick={handleOpenNew}
+          className="px-5 py-2.5 bg-[#241E1C] text-[#FAF7F3] rounded-lg text-xs uppercase font-sans font-semibold tracking-wider hover:bg-[#C4A36A] hover:text-[#241E1C] transition-colors inline-flex items-center gap-2 cursor-pointer shadow-xs"
+        >
+          <Plus size={15} />
+          <span>New Collection</span>
+        </button>
+      </div>
+
+      {/* Grid of collections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {categories.map((c) => {
+          const productCount = products.filter((p) => p.categoryId === c.id).length;
+
+          return (
+            <div
+              key={c.id}
+              className="bg-white rounded-2xl border border-[#E7DED7] overflow-hidden shadow-xs flex flex-col justify-between group hover:border-[#C4A36A] transition-colors"
+            >
+              <div>
+                <div className="relative h-44 overflow-hidden bg-[#F1EBE5]">
+                  {c.image && (
+                    <img
+                      src={c.image}
+                      alt={c.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  )}
+                  <span className="absolute top-3 right-3 bg-[#241E1C]/80 backdrop-blur-xs text-white text-[10px] font-sans font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    {productCount} Formulations
+                  </span>
+                </div>
+
+                <div className="p-5 space-y-2">
+                  <h3 className="font-serif text-xl text-[#241E1C]">{c.name}</h3>
+                  <span className="font-mono text-[11px] text-[#B98D80] block">
+                    /{c.slug}
+                  </span>
+                  <p className="text-xs font-sans text-[#665D58] line-clamp-2 leading-relaxed">
+                    {c.description}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-[#E7DED7] bg-[#FAF7F3] flex items-center justify-between">
+                <button
+                  onClick={() => handleOpenEdit(c)}
+                  className="text-xs font-sans font-semibold text-[#241E1C] hover:text-[#C4A36A] inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Edit size={13} />
+                  <span>Edit Collection</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Delete collection "${c.name}"?`)) {
+                      onDeleteCategory(c.id);
+                    }
+                  }}
+                  className="text-xs font-sans text-[#8F3E3E] hover:text-red-700 p-1 cursor-pointer"
+                  title="Delete"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Add / Edit Category Modal */}
+      {(editingCat || isNew) && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <form
+            onSubmit={handleSave}
+            className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 space-y-4 shadow-xl border border-[#E7DED7]"
+          >
+            <h3 className="font-serif text-2xl text-[#241E1C]">
+              {isNew ? 'Create New Collection' : `Edit: ${editingCat?.name}`}
+            </h3>
+
+            <div>
+              <label className="block text-xs font-sans font-semibold text-[#241E1C] mb-1">
+                Collection Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (isNew) setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+                }}
+                className="w-full px-3.5 py-2 text-xs font-sans bg-[#FAF7F3] border border-[#E7DED7] rounded"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-sans font-semibold text-[#241E1C] mb-1">
+                URL Slug
+              </label>
+              <input
+                type="text"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                className="w-full px-3.5 py-2 text-xs font-sans bg-[#FAF7F3] border border-[#E7DED7] rounded font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-sans font-semibold text-[#241E1C] mb-1">
+                Description / Ritual Narrative
+              </label>
+              <textarea
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-3.5 py-2 text-xs font-sans bg-[#FAF7F3] border border-[#E7DED7] rounded"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-sans font-semibold text-[#241E1C] mb-1">
+                Collection Cover Photo URL
+              </label>
+              <input
+                type="url"
+                required
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                className="w-full px-3.5 py-2 text-xs font-sans bg-[#FAF7F3] border border-[#E7DED7] rounded"
+              />
+            </div>
+
+            <div className="pt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingCat(null);
+                  setIsNew(false);
+                }}
+                className="px-4 py-2 bg-white border border-[#E7DED7] rounded text-xs font-sans text-[#665D58]"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-5 py-2 bg-[#241E1C] text-[#FAF7F3] rounded text-xs uppercase font-sans font-semibold hover:bg-[#C4A36A] hover:text-[#241E1C] transition-colors cursor-pointer"
+              >
+                {saving ? 'Saving...' : 'Save Collection'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+};
