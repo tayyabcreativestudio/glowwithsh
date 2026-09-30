@@ -33,7 +33,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
 
 # Ensure uploads and data directories exist with proper permissions
-RUN mkdir -p /app/public/uploads /app/data && chown -R node:node /app
+RUN mkdir -p /app/public/uploads /app/data /app/storage/uploads /app/storage/data && chown -R node:node /app
 
 # Switch to non-root user for security
 USER node

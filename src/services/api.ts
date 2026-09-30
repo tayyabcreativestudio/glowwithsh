@@ -678,6 +678,22 @@ export const api = {
     return res.json();
   },
 
+  async adminUploadVideo(file: File): Promise<{ success: boolean; url: string; filename: string; size: number; mediaItem: MediaItem }> {
+    const res = await fetch(`${API_BASE}/admin/upload-video`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'X-File-Name': encodeURIComponent(file.name),
+      },
+      body: file,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to upload video');
+    }
+    return res.json();
+  },
+
   async adminDeleteMedia(id: string): Promise<{ success: boolean }> {
     const res = await fetch(`${API_BASE}/admin/media/${encodeURIComponent(id)}`, {
       method: 'DELETE',

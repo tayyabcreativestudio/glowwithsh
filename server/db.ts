@@ -56,7 +56,9 @@ export interface DatabaseSchema {
   processedWebhookKeys?: string[];
 }
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.resolve(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const DB_BACKUP_FILE = path.join(DATA_DIR, 'db.json.bak');
 const DB_LOCK_FILE = path.join(DATA_DIR, '.db.lock');

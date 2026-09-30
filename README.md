@@ -39,7 +39,7 @@ Configure your service with the following settings:
 | **Port** | Automatically bound from `process.env.PORT` (defaults to 3000) |
 
 > [!TIP]
-> **Persistent Storage**: To retain placed customer orders, inventory adjustments, and modified discounts across server redeployments, mount a persistent volume/disk to the `./data` directory.
+> **Persistent Storage**: To retain orders, inventory changes, uploaded images, and uploaded hero videos across redeployments, configure `DATA_DIR` and `UPLOADS_DIR` inside the host's persistent disk. The included Render blueprint mounts `/app/storage` and uses `/app/storage/data` plus `/app/storage/uploads`.
 
 For this file-backed deployment, run exactly one application replica against that volume. Use PostgreSQL before scaling to multiple replicas.
 

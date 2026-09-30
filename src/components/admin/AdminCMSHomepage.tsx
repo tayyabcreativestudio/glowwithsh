@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { HomepageCMS } from '../../types';
-import { Save } from 'lucide-react';
+import { Film, Loader2, Save, Upload } from 'lucide-react';
+import { api } from '../../services/api';
 
 interface AdminCMSHomepageProps {
   cms: HomepageCMS;
@@ -11,6 +12,33 @@ export const AdminCMSHomepage: React.FC<AdminCMSHomepageProps> = ({ cms, onSave 
   const [formData, setFormData] = useState<HomepageCMS>(cms);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoUploadError, setVideoUploadError] = useState('');
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleVideoUpload = async (file?: File) => {
+    if (!file) return;
+    setVideoUploadError('');
+    if (!['video/mp4', 'video/webm'].includes(file.type)) {
+      setVideoUploadError('Choose an MP4 or WebM video file.');
+      return;
+    }
+    if (file.size > 40 * 1024 * 1024) {
+      setVideoUploadError('Video must be 40 MB or smaller. Compress it before uploading.');
+      return;
+    }
+    setUploadingVideo(true);
+    try {
+      const uploaded = await api.adminUploadVideo(file);
+      setFormData((current) => ({ ...current, hero: { ...current.hero, videoUrl: uploaded.url } }));
+      setSavedMsg('✓ Video uploaded. Save CMS Updates to publish it on the homepage.');
+    } catch (error: any) {
+      setVideoUploadError(error.message || 'Video upload failed.');
+    } finally {
+      setUploadingVideo(false);
+      if (videoInputRef.current) videoInputRef.current.value = '';
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,6 +213,21 @@ export const AdminCMSHomepage: React.FC<AdminCMSHomepageProps> = ({ cms, onSave 
             placeholder="/videos/hero_optimized.mp4 or https://..."
             className="w-full px-3.5 py-2 text-xs font-sans bg-[#FAF7F3] border border-[#E7DED7] rounded font-mono"
           />
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <input ref={videoInputRef} type="file" accept="video/mp4,video/webm,.mp4,.webm" className="hidden" onChange={(event) => handleVideoUpload(event.target.files?.[0])} />
+            <button type="button" disabled={uploadingVideo} onClick={() => videoInputRef.current?.click()} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#241E1C] text-white text-xs font-semibold disabled:opacity-60">
+              {uploadingVideo ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+              {uploadingVideo ? 'Uploading video…' : 'Upload video file'}
+            </button>
+            <span className="text-[11px] text-[#665D58]">MP4 or WebM, maximum 40 MB. Short compressed clips load fastest.</span>
+          </div>
+          {videoUploadError && <p className="mt-2 text-xs text-red-700">{videoUploadError}</p>}
+          {formData.hero.videoUrl && (
+            <div className="mt-4 rounded-xl overflow-hidden bg-black border border-[#E7DED7] max-w-xl">
+              <div className="flex items-center gap-2 px-3 py-2 bg-[#FAF7F3] text-xs text-[#665D58]"><Film size={14} /> Current hero video preview</div>
+              <video key={formData.hero.videoUrl} src={formData.hero.videoUrl} controls muted loop playsInline className="w-full max-h-64 object-cover" />
+            </div>
+          )}
         </div>
       </div>
 

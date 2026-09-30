@@ -5,11 +5,15 @@ services:
     healthCheckPath: /api/health
     disk:
       name: glowwithsh-data
-      mountPath: /app/data
+      mountPath: /app/storage
       sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DATA_DIR
+        value: /app/storage/data
+      - key: UPLOADS_DIR
+        value: /app/storage/uploads
       - key: ADMIN_USERNAME
         sync: false
       - key: ADMIN_PASSWORD

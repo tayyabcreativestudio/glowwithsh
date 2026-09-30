@@ -75,9 +75,13 @@ const app = express();
 app.set('trust proxy', 1);
 const STOREFRONT_PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5173;
 const ADMIN_PORT = process.env.ADMIN_PORT ? parseInt(process.env.ADMIN_PORT, 10) : 5174;
+const UPLOADS_DIR = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.join(process.cwd(), 'public', 'uploads');
 
 // High performance compression
 app.use(compression());
+app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '7d', immutable: false }));
 
 // Production Security Headers & Content-Security-Policy
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -2319,7 +2323,7 @@ app.post('/api/admin/upload', requireAdminAuth, (req: Request, res: Response) =>
       return res.status(400).json({ error: 'File magic bytes do not match a valid JPEG, PNG, or WebP image.' });
     }
 
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+    const uploadsDir = UPLOADS_DIR;
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
@@ -2365,6 +2369,50 @@ app.post('/api/admin/upload', requireAdminAuth, (req: Request, res: Response) =>
     return res.status(500).json({ error: 'Failed to process file upload: ' + err.message });
   }
 });
+
+app.post(
+  '/api/admin/upload-video',
+  requireAdminAuth,
+  express.raw({ type: ['video/mp4', 'video/webm', 'application/octet-stream'], limit: '40mb' }),
+  (req: Request, res: Response) => {
+    try {
+      const buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+      if (!buffer.length) return res.status(400).json({ error: 'A video file is required.' });
+      const originalName = String(req.headers['x-file-name'] || 'hero-video').slice(0, 180);
+      const declaredMime = String(req.headers['content-type'] || '').toLowerCase();
+      const isMp4 = buffer.length > 12 && buffer.toString('ascii', 4, 8) === 'ftyp';
+      const isWebm = buffer.length > 4 && buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3;
+      if ((!isMp4 && !isWebm) || (declaredMime !== 'application/octet-stream' && !['video/mp4', 'video/webm'].includes(declaredMime))) {
+        return res.status(400).json({ error: 'Only valid MP4 or WebM video files are allowed.' });
+      }
+      const safeExt = isMp4 ? '.mp4' : '.webm';
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+      const uniqueName = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${safeExt}`;
+      const filePath = path.resolve(UPLOADS_DIR, uniqueName);
+      if (!filePath.startsWith(path.resolve(UPLOADS_DIR) + path.sep)) return res.status(400).json({ error: 'Invalid upload path.' });
+      fs.writeFileSync(filePath, buffer);
+      const publicUrl = `/uploads/${uniqueName}`;
+      const db = getDatabase();
+      const mediaItem: MediaItem = {
+        id: `med-${Date.now()}`,
+        title: sanitizeString(path.basename(originalName, path.extname(originalName))) || 'Homepage hero video',
+        url: publicUrl,
+        altText: 'GlowWithSH homepage hero background video',
+        category: 'hero-videos',
+        sizeBytes: buffer.length,
+        dimensions: `${(buffer.length / 1024 / 1024).toFixed(1)} MB video`,
+        uploadedAt: new Date().toISOString(),
+      };
+      db.media.unshift(mediaItem);
+      saveDatabase(db);
+      logActivity('Uploaded Video', 'Media', mediaItem.id, `Uploaded homepage hero video ${uniqueName}`);
+      return res.status(201).json({ success: true, url: publicUrl, filename: uniqueName, size: buffer.length, mediaItem });
+    } catch (err: any) {
+      console.error('Video upload error:', err);
+      return res.status(500).json({ error: 'Failed to process video upload.' });
+    }
+  }
+);
 
 app.post('/api/admin/media', (req: Request, res: Response) => {
   const db = getDatabase();

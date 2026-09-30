@@ -330,7 +330,7 @@ export interface MediaItem {
   title: string;
   url: string;
   altText: string;
-  category: 'products' | 'editorial' | 'founder' | 'awards' | 'social';
+  category: 'products' | 'editorial' | 'founder' | 'awards' | 'social' | 'hero-videos';
   sizeBytes?: number;
   dimensions?: string;
   uploadedAt: string;
