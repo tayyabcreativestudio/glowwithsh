@@ -153,7 +153,11 @@ function isAdministrativeContext(req: Request): boolean {
 
   const isLocalAdminPort = localPort === ADMIN_PORT || port === String(ADMIN_PORT);
   const isSubdomainAdmin = hostname.startsWith('admin.') || hostname === 'admin.localhost';
-  return isLocalAdminPort || isSubdomainAdmin;
+  // Some managed hosts give a subdomain its own static document root instead
+  // of routing it to this Node.js process. This explicit opt-in keeps the
+  // authenticated admin APIs usable at /admin on the same deployed origin.
+  const sameOriginAdmin = process.env.ADMIN_SAME_ORIGIN?.trim().toLowerCase() === 'true';
+  return sameOriginAdmin || isLocalAdminPort || isSubdomainAdmin;
 }
 
 // Security Boundary: Storefront Port (Main Domain) vs Admin Subdomain / Port
