@@ -130,11 +130,6 @@ function parseLocationToRoute(pathname: string, search: string): AppRoute {
     }
   }
 
-  // Keep the customer storefront separate from the private admin portal.
-  if (!isAdminDomainOrPort() && (cleanPath.startsWith('/admin') || cleanPath === '/admin-login')) {
-    return { view: '404' };
-  }
-
   if (cleanPath === '/' || cleanPath === '/home') {
     return { view: 'home' };
   }
