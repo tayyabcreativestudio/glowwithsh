@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Save, Plus, Trash2 } from 'lucide-react';
+import { MediaLibraryButton } from './MediaLibraryButton';
 
 interface CuratedPost {
   id: string;
@@ -166,13 +167,7 @@ export const AdminCMSSocial: React.FC<AdminCMSSocialProps> = ({ social, onSave }
           <span className="font-serif text-base text-[#241E1C] block">Add Curated Photo to Stream</span>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input
-              type="url"
-              placeholder="Image URL (https://...)"
-              value={newImage}
-              onChange={(e) => setNewImage(e.target.value)}
-              className="px-3.5 py-2 text-xs font-sans bg-[#FAF7F3] border border-[#E7DED7] rounded"
-            />
+            <div className="space-y-2"><input type="url" placeholder="Image URL (https://...)" value={newImage} onChange={(e) => setNewImage(e.target.value)} className="w-full px-3.5 py-2 text-xs font-sans bg-[#FAF7F3] border border-[#E7DED7] rounded" /><MediaLibraryButton onSelect={setNewImage} /></div>
             <input
               type="text"
               placeholder="Caption summary"

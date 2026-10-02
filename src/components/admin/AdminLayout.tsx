@@ -23,6 +23,8 @@ import {
   Eye,
   Store,
   SlidersHorizontal,
+  FilePlus2,
+  Images,
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -56,12 +58,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     { id: 'orders', label: 'Orders', icon: ShoppingBag, badge: newOrdersCount },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'inventory', label: 'Inventory', icon: Boxes },
-    { id: 'categories', label: 'Collections', icon: Layers },
+    { id: 'categories', label: 'Categories', icon: Layers },
     { id: 'discounts', label: 'Discounts', icon: Percent },
   ];
 
   const salesChannels = [
     { id: 'cms-homepage', label: 'Themes & Homepage', icon: Sparkles },
+    { id: 'pages', label: 'Pages', icon: FilePlus2 },
+    { id: 'media', label: 'Media library', icon: Images },
     { id: 'blog', label: 'Blog Posts', icon: FileText },
     { id: 'cms-founder', label: 'Founder Story', icon: UserCheck },
     { id: 'cms-awards', label: 'Verified Awards', icon: Award },

@@ -25,6 +25,7 @@ import {
   MediaItem,
   ActivityLog,
   OrderStatus,
+  StorePage,
 } from './src/types';
 import {
   hashPassword,
@@ -793,11 +794,13 @@ app.get('/api/categories', (_req: Request, res: Response) => {
 
 app.post('/api/admin/categories', (req: Request, res: Response) => {
   const db = getDatabase();
-  const { name, description, image } = req.body;
+  const { name, description, image, productIds } = req.body;
   if (!name) return res.status(400).json({ error: 'Name is required' });
 
-  const id = `cat-${generateSlug(name)}`;
   const slug = generateSlug(name);
+  if (!slug) return res.status(400).json({ error: 'A valid category name is required' });
+  if (db.categories.some((category) => category.slug === slug)) return res.status(409).json({ error: 'A category with this URL already exists' });
+  const id = `cat-${slug}`;
   const newCat = {
     id,
     name: sanitizeString(name),
@@ -806,6 +809,15 @@ app.post('/api/admin/categories', (req: Request, res: Response) => {
     image: image || 'https://images.unsplash.com/photo-1608248597359-009579a33bb5?q=80&w=800&auto=format&fit=crop',
   };
   db.categories.push(newCat);
+  if (Array.isArray(productIds)) {
+    const selected = new Set(productIds.filter((value: unknown): value is string => typeof value === 'string'));
+    for (const product of db.products) {
+      if (selected.has(product.id)) {
+        product.categoryId = id;
+        product.categoryName = newCat.name;
+      }
+    }
+  }
   logActivity('Created Category', 'Categories', id, `Created category ${name}`);
   saveDatabase(db);
   res.status(201).json(newCat);
@@ -818,11 +830,31 @@ app.patch('/api/admin/categories/:id', (req: Request, res: Response) => {
   if (index === -1) return res.status(404).json({ error: 'Category not found' });
 
   const existing = db.categories[index];
-  const updated = { ...existing, ...req.body };
-  if (req.body.name && !req.body.slug) {
-    updated.slug = generateSlug(req.body.name);
+  const { productIds, ...categoryUpdates } = req.body;
+  const updated = { ...existing, ...categoryUpdates };
+  if (req.body.name && !req.body.slug) updated.slug = generateSlug(req.body.name);
+  if (!updated.slug) return res.status(400).json({ error: 'A valid category name is required' });
+  if (db.categories.some((category, categoryIndex) => categoryIndex !== index && category.slug === updated.slug)) {
+    return res.status(409).json({ error: 'A category with this URL already exists' });
   }
   db.categories[index] = updated;
+  if (Array.isArray(productIds)) {
+    const selected = new Set(productIds.filter((value: unknown): value is string => typeof value === 'string'));
+    const fallback = db.categories.find((category) => category.id !== id);
+    for (const product of db.products) {
+      if (selected.has(product.id)) {
+        product.categoryId = id;
+        product.categoryName = updated.name;
+      } else if (product.categoryId === id) {
+        product.categoryId = fallback?.id || '';
+        product.categoryName = fallback?.name || '';
+      }
+    }
+  } else {
+    for (const product of db.products) {
+      if (product.categoryId === id) product.categoryName = updated.name;
+    }
+  }
   logActivity('Updated Category', 'Categories', id, `Category ${updated.name} updated`);
   saveDatabase(db);
   res.json(updated);
@@ -831,6 +863,13 @@ app.patch('/api/admin/categories/:id', (req: Request, res: Response) => {
 app.delete('/api/admin/categories/:id', (req: Request, res: Response) => {
   const db = getDatabase();
   const { id } = req.params;
+  const fallback = db.categories.find((category) => category.id !== id);
+  for (const product of db.products) {
+    if (product.categoryId === id) {
+      product.categoryId = fallback?.id || '';
+      product.categoryName = fallback?.name || '';
+    }
+  }
   db.categories = db.categories.filter((c) => c.id !== id);
   logActivity('Deleted Category', 'Categories', id, `Category ${id} removed`);
   saveDatabase(db);
@@ -1859,6 +1898,88 @@ app.delete('/api/admin/blog/:id', (req: Request, res: Response) => {
 });
 
 // ----------------------------------------------------
+// 7a. STOREFRONT PAGES
+// ----------------------------------------------------
+const RESERVED_PAGE_SLUGS = new Set(['shop', 'product', 'journal', 'blog', 'cart', 'checkout', 'admin', 'admin-login', 'about', 'founder', 'awards', 'contact', 'policies', 'track-order', 'track', 'wishlist', 'quiz', 'order-confirmation']);
+const normalizePageSlug = (value: unknown) => generateSlug(typeof value === 'string' ? value : '');
+
+app.get('/api/pages', (_req: Request, res: Response) => {
+  res.json(getDatabase().pages.filter((page) => page.status === 'published'));
+});
+
+app.get('/api/pages/:slug', (req: Request, res: Response) => {
+  const page = getDatabase().pages.find((item) => item.slug === req.params.slug && item.status === 'published');
+  if (!page) return res.status(404).json({ error: 'Page not found' });
+  res.json(page);
+});
+
+app.get('/api/admin/pages', (_req: Request, res: Response) => {
+  res.json([...getDatabase().pages].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
+});
+
+app.post('/api/admin/pages', (req: Request, res: Response) => {
+  const db = getDatabase();
+  const title = typeof req.body.title === 'string' ? sanitizeString(req.body.title).trim() : '';
+  const slug = normalizePageSlug(req.body.slug || title);
+  if (!title) return res.status(400).json({ error: 'Page title is required' });
+  if (!slug || RESERVED_PAGE_SLUGS.has(slug)) return res.status(400).json({ error: 'Choose a different page URL' });
+  if (db.pages.some((page) => page.slug === slug)) return res.status(409).json({ error: 'That page URL is already in use' });
+  const now = new Date().toISOString();
+  const page: StorePage = {
+    id: `page-${crypto.randomBytes(8).toString('hex')}`,
+    title,
+    slug,
+    content: typeof req.body.content === 'string' ? req.body.content.slice(0, 100_000) : '',
+    coverImage: typeof req.body.coverImage === 'string' ? req.body.coverImage.slice(0, 2000) : '',
+    status: req.body.status === 'published' ? 'published' : 'draft',
+    seoTitle: typeof req.body.seoTitle === 'string' ? sanitizeString(req.body.seoTitle).slice(0, 180) : '',
+    seoDescription: typeof req.body.seoDescription === 'string' ? sanitizeString(req.body.seoDescription).slice(0, 320) : '',
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.pages.unshift(page);
+  saveDatabase(db);
+  logActivity('Created Store Page', 'Pages', page.id, `Created page ${page.title}`);
+  res.status(201).json(page);
+});
+
+app.patch('/api/admin/pages/:id', (req: Request, res: Response) => {
+  const db = getDatabase();
+  const index = db.pages.findIndex((page) => page.id === req.params.id);
+  if (index < 0) return res.status(404).json({ error: 'Page not found' });
+  const existing = db.pages[index];
+  const title = typeof req.body.title === 'string' ? sanitizeString(req.body.title).trim() : existing.title;
+  const slug = normalizePageSlug(req.body.slug || title);
+  if (!title) return res.status(400).json({ error: 'Page title is required' });
+  if (!slug || RESERVED_PAGE_SLUGS.has(slug)) return res.status(400).json({ error: 'Choose a different page URL' });
+  if (db.pages.some((page, pageIndex) => pageIndex !== index && page.slug === slug)) return res.status(409).json({ error: 'That page URL is already in use' });
+  db.pages[index] = {
+    ...existing,
+    title,
+    slug,
+    content: typeof req.body.content === 'string' ? req.body.content.slice(0, 100_000) : existing.content,
+    coverImage: typeof req.body.coverImage === 'string' ? req.body.coverImage.slice(0, 2000) : existing.coverImage,
+    status: req.body.status === 'published' ? 'published' : req.body.status === 'draft' ? 'draft' : existing.status,
+    seoTitle: typeof req.body.seoTitle === 'string' ? sanitizeString(req.body.seoTitle).slice(0, 180) : existing.seoTitle,
+    seoDescription: typeof req.body.seoDescription === 'string' ? sanitizeString(req.body.seoDescription).slice(0, 320) : existing.seoDescription,
+    updatedAt: new Date().toISOString(),
+  };
+  saveDatabase(db);
+  logActivity('Updated Store Page', 'Pages', existing.id, `Updated page ${title}`);
+  res.json(db.pages[index]);
+});
+
+app.delete('/api/admin/pages/:id', (req: Request, res: Response) => {
+  const db = getDatabase();
+  const page = db.pages.find((item) => item.id === req.params.id);
+  if (!page) return res.status(404).json({ error: 'Page not found' });
+  db.pages = db.pages.filter((item) => item.id !== page.id);
+  saveDatabase(db);
+  logActivity('Deleted Store Page', 'Pages', page.id, `Deleted page ${page.title}`);
+  res.json({ success: true });
+});
+
+// ----------------------------------------------------
 // 8. HOMEPAGE & CMS
 // ----------------------------------------------------
 app.get('/api/homepage', (_req: Request, res: Response) => {
@@ -2486,8 +2607,33 @@ app.post('/api/admin/media', (req: Request, res: Response) => {
 app.delete('/api/admin/media/:id', (req: Request, res: Response) => {
   const db = getDatabase();
   const { id } = req.params;
-  db.media = db.media.filter((m) => m.id !== id);
+  const item = db.media.find((m) => m.id === id);
+  if (!item) return res.status(404).json({ error: 'Media item not found' });
+  const url = item.url;
+  const isInUse =
+    db.products.some((product) => product.primaryImage === url || product.mediaGallery?.includes(url) || product.video === url) ||
+    db.categories.some((category) => category.image === url) ||
+    db.collections.some((collection) => collection.image === url) ||
+    db.blogPosts.some((post) => post.coverImage === url) ||
+    db.awards.some((award) => award.image === url) ||
+    db.founderCMS.image === url || db.founderCMS.additionalImages?.includes(url) ||
+    db.homepageCMS.hero.videoUrl === url || db.homepageCMS.hero.mobileVideoUrl === url ||
+    db.homepageCMS.hero.posterImage === url || db.homepageCMS.editorialStatement.image === url ||
+    db.instagramSettings.curatedPosts.some((post) => post.imageUrl === url) ||
+    db.pages.some((page) => page.coverImage === url) ||
+    db.siteSettings.socialSharingImage === url;
+  if (isInUse) return res.status(409).json({ error: 'This asset is in use. Replace it on the storefront before removing it.' });
+
+  if (url.startsWith('/uploads/')) {
+    const uploadsRoot = path.resolve(UPLOADS_DIR);
+    const filename = path.basename(url.split(/[?#]/)[0]);
+    const assetPath = path.resolve(uploadsRoot, filename);
+    if (!assetPath.startsWith(`${uploadsRoot}${path.sep}`)) return res.status(400).json({ error: 'Invalid media path' });
+    if (fs.existsSync(assetPath)) fs.unlinkSync(assetPath);
+  }
+  db.media = db.media.filter((media) => media.id !== id);
   saveDatabase(db);
+  logActivity('Removed Media', 'Media', id, `Removed ${item.title} from the media library`);
   res.json({ success: true });
 });
 
@@ -2557,7 +2703,15 @@ app.get('/sitemap.xml', (_req: Request, res: Response) => {
       changefreq: 'monthly',
     }));
 
-  const allUrls = [...staticPages, ...categoryUrls, ...productUrls, ...blogUrls];
+  const pageUrls = (db.pages || [])
+    .filter((page) => page.status === 'published')
+    .map((page) => ({
+      url: `/${page.slug}`,
+      priority: '0.6',
+      changefreq: 'monthly',
+    }));
+
+  const allUrls = [...staticPages, ...categoryUrls, ...productUrls, ...blogUrls, ...pageUrls];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

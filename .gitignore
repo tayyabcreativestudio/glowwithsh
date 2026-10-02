@@ -18,6 +18,7 @@ coverage/
 
 # Runtime persistent data (prevent customer PII / hashes from entering git)
 data/db.json
+data/db.json.*
 data/*.bak
 data/*.tmp*
 data/migrated_pg_dump.sql

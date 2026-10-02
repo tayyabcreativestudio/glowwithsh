@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Search, ShoppingBag, Menu, X, Sparkles, Truck, Heart } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { StorePage } from '../../types';
 
 interface HeaderProps {
   currentPath: string;
   onNavigate: (path: string) => void;
   onOpenSearch: () => void;
+  pages?: Pick<StorePage, 'title' | 'slug'>[];
 }
 
-export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenSearch }) => {
+export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenSearch, pages = [] }) => {
   const { totalCount, setIsCartOpen } = useCart();
   const { wishlistCount } = useWishlist();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -90,6 +92,12 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenS
                 </button>
               );
             })}
+          {pages.length > 0 && <div className="group relative">
+            <button type="button" className={`py-1 text-[13px] font-medium uppercase tracking-[0.08em] transition-colors ${pages.some((page) => currentPath === `/${page.slug}`) ? 'text-[#7C3AED]' : 'text-[#6B5F82] hover:text-[#7C3AED]'}`}>Pages</button>
+            <div className="invisible absolute left-1/2 top-full z-50 min-w-48 -translate-x-1/2 translate-y-2 rounded-xl border border-[#DDD6F3] bg-white p-2 opacity-0 shadow-xl transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+              {pages.map((page) => <button key={page.slug} type="button" onClick={() => handleLinkClick(`/${page.slug}`)} className="block w-full rounded-lg px-3 py-2 text-left text-xs text-[#554C68] hover:bg-[#F4F0FF] hover:text-[#7C3AED]">{page.title}</button>)}
+            </div>
+          </div>}
           </nav>
 
           {/* Right: Actions (Search, Wishlist, Cart, Mobile Menu) */}
@@ -191,6 +199,7 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenS
                   {item.label}
                 </button>
               ))}
+              {pages.map((page) => <button key={page.slug} onClick={() => handleLinkClick(`/${page.slug}`)} className="text-left font-serif text-2xl text-[#1E1630] hover:text-[#7C3AED] transition-colors py-1 cursor-pointer">{page.title}</button>)}
               <div className="pt-4 border-t border-[#DDD6F3]/60 space-y-1">
                 <button
                   onClick={() => handleLinkClick('/wishlist')}

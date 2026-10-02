@@ -336,6 +336,19 @@ export interface MediaItem {
   uploadedAt: string;
 }
 
+export interface StorePage {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  coverImage?: string;
+  status: 'draft' | 'published';
+  seoTitle?: string;
+  seoDescription?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type AdminRole = 'Super Admin' | 'Manager' | 'Editor' | 'Support';
 
 export interface AdminUser {

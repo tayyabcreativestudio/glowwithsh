@@ -18,6 +18,7 @@ import {
   Check,
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { MediaLibraryButton } from './MediaLibraryButton';
 
 interface AdminSettingsProps {
   settings: SiteSettings;
@@ -303,6 +304,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                   placeholder="Or enter image URL: https://..."
                   className="w-full px-3 py-1.5 text-xs bg-white border border-[#D3D5D7] rounded-lg focus:outline-hidden focus:border-[#008060]"
                 />
+                <MediaLibraryButton className="mt-2" onSelect={(url) => setFormData({ ...formData, socialSharingImage: url })} />
               </div>
             </div>
           </div>

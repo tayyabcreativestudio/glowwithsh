@@ -16,6 +16,7 @@ import {
   MediaItem,
   AdminUser,
   ActivityLog,
+  StorePage,
 } from '../types';
 
 // Keep local development and a single-origin deployment simple, while allowing
@@ -110,6 +111,36 @@ export const api = {
   async getBlogPost(slugOrId: string): Promise<{ post: BlogPost; relatedProducts: Product[] }> {
     const res = await fetch(`${API_BASE}/blog/${encodeURIComponent(slugOrId)}`);
     if (!res.ok) throw new Error('Failed to load article');
+    return res.json();
+  },
+
+  async getPages(): Promise<StorePage[]> {
+    const res = await fetch(`${API_BASE}/pages`);
+    if (!res.ok) throw new Error('Failed to load store pages');
+    return res.json();
+  },
+
+  async adminGetPages(): Promise<StorePage[]> {
+    const res = await fetch(`${API_BASE}/admin/pages`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Failed to load pages');
+    return res.json();
+  },
+
+  async adminCreatePage(data: Partial<StorePage>): Promise<StorePage> {
+    const res = await fetch(`${API_BASE}/admin/pages`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Failed to create page'); }
+    return res.json();
+  },
+
+  async adminUpdatePage(id: string, data: Partial<StorePage>): Promise<StorePage> {
+    const res = await fetch(`${API_BASE}/admin/pages/${encodeURIComponent(id)}`, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Failed to update page'); }
+    return res.json();
+  },
+
+  async adminDeletePage(id: string): Promise<{ success: boolean }> {
+    const res = await fetch(`${API_BASE}/admin/pages/${encodeURIComponent(id)}`, { method: 'DELETE', headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Failed to delete page');
     return res.json();
   },
 
@@ -362,7 +393,7 @@ export const api = {
     return res.json();
   },
 
-  async adminCreateCategory(data: Partial<Category>): Promise<Category> {
+  async adminCreateCategory(data: Partial<Category> & { productIds?: string[] }): Promise<Category> {
     const res = await fetch(`${API_BASE}/admin/categories`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -375,7 +406,7 @@ export const api = {
     return res.json();
   },
 
-  async adminUpdateCategory(id: string, data: Partial<Category>): Promise<Category> {
+  async adminUpdateCategory(id: string, data: Partial<Category> & { productIds?: string[] }): Promise<Category> {
     const res = await fetch(`${API_BASE}/admin/categories/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
@@ -712,7 +743,10 @@ export const api = {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to delete media');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to delete media');
+    }
     return res.json();
   },
 

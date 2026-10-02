@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Product, Category } from '../../types';
 import { api } from '../../services/api';
+import { MediaLibraryButton } from './MediaLibraryButton';
 import {
   ArrowLeft,
   Save,
@@ -445,6 +446,7 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
               >
                 Add URL
               </button>
+              <MediaLibraryButton label="Media library" onSelect={(url) => setMediaGallery((current) => [...current, url])} />
             </div>
 
             {/* Media Gallery Thumbnails Grid */}

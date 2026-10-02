@@ -15,6 +15,7 @@ import {
   ContactInquiry,
   SiteSettings,
   OrderStatus,
+  StorePage as StorePageRecord,
 } from './types';
 
 // Storefront Core Components & Pages (Synchronous for fast first render)
@@ -33,6 +34,7 @@ import { CartPage } from './pages/CartPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { StorePage } from './pages/StorePage';
 
 // Code-split secondary pages for optimal lightweight bundle size
 const AboutPage = lazy(() => import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })));
@@ -64,6 +66,8 @@ const AdminCMSSocial = lazy(() => import('./components/admin/AdminCMSSocial').th
 const AdminReviews = lazy(() => import('./components/admin/AdminReviews').then((m) => ({ default: m.AdminReviews })));
 const AdminContacts = lazy(() => import('./components/admin/AdminContacts').then((m) => ({ default: m.AdminContacts })));
 const AdminSettings = lazy(() => import('./components/admin/AdminSettings').then((m) => ({ default: m.AdminSettings })));
+const AdminPages = lazy(() => import('./components/admin/AdminPages').then((m) => ({ default: m.AdminPages })));
+const AdminMedia = lazy(() => import('./components/admin/AdminMedia').then((m) => ({ default: m.AdminMedia })));
 
 const AtelierPageFallback: React.FC = () => (
   <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-3">
@@ -91,6 +95,7 @@ type AppRoute =
   | { view: 'quiz' }
   | { view: 'wishlist' }
   | { view: 'policies'; tab?: 'shipping' | 'refunds' | 'privacy' | 'terms' | 'faq' | 'disclaimer' | 'contact' }
+  | { view: 'store-page'; slug: string }
   | { view: 'admin-login' }
   | { view: 'admin'; tab: string; editProductId?: string }
   | { view: '404' };
@@ -185,6 +190,9 @@ function parseLocationToRoute(pathname: string, search: string): AppRoute {
     const tabMatch = (cleanPath.split('/')[2] || query.get('tab') || 'shipping') as any;
     return { view: 'policies', tab: tabMatch };
   }
+  if (cleanPath.length > 1 && !cleanPath.slice(1).includes('/')) {
+    return { view: 'store-page', slug: cleanPath.slice(1) };
+  }
   return { view: '404' };
 }
 
@@ -229,6 +237,8 @@ function routeToPath(route: AppRoute): string {
     }
     case 'policies':
       return `/policies/${route.tab || 'shipping'}`;
+    case 'store-page':
+      return `/${route.slug}`;
     case 'admin-login':
       return '/admin-login';
     case 'admin':
@@ -263,6 +273,7 @@ export const AppContent: React.FC = () => {
   const [socialSettings, setSocialSettings] = useState<InstagramSettings | null>(null);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [storePages, setStorePages] = useState<StorePageRecord[]>([]);
 
   // Admin-specific data
   const [orders, setOrders] = useState<Order[]>([]);
@@ -298,6 +309,7 @@ export const AppContent: React.FC = () => {
         socialData,
         postsData,
         settingsData,
+        pagesData,
       ] = await Promise.all([
         api.getProducts({ includeDrafts: true }),
         api.getCategories(),
@@ -307,6 +319,7 @@ export const AppContent: React.FC = () => {
         api.getSocialSettings(),
         api.getBlogPosts(true),
         api.getSiteSettings(),
+        api.getPages(),
       ]);
 
       setProducts(prodsData.products || []);
@@ -317,6 +330,7 @@ export const AppContent: React.FC = () => {
       setSocialSettings(socialData);
       setPosts(postsData || []);
       setSiteSettings(settingsData);
+      setStorePages(pagesData || []);
     } catch (err) {
       console.error('Failed to load atelier data:', err);
     } finally {
@@ -543,7 +557,7 @@ export const AppContent: React.FC = () => {
   };
 
   // Handlers for Categories
-  const handleSaveCategory = async (catData: Partial<Category>) => {
+  const handleSaveCategory = async (catData: Partial<Category> & { productIds?: string[] }) => {
     try {
       if (catData.id) {
         await api.adminUpdateCategory(catData.id, catData);
@@ -826,6 +840,12 @@ export const AppContent: React.FC = () => {
           />
         )}
 
+        {currentTab === 'pages' && (
+          <AdminPages onChanged={refreshAllData} />
+        )}
+
+        {currentTab === 'media' && <AdminMedia />}
+
         {currentTab === 'cms-homepage' && homepageCMS && (
           <AdminCMSHomepage
             cms={homepageCMS}
@@ -915,9 +935,10 @@ export const AppContent: React.FC = () => {
 
       {/* Global Header */}
       <Header
-        currentPath={route.view === 'home' ? '/' : `/${route.view}`}
+        currentPath={route.view === 'home' ? '/' : route.view === 'store-page' ? `/${route.slug}` : `/${route.view}`}
         onNavigate={handleNavigatePath}
         onOpenSearch={() => setIsSearchOpen(true)}
+        pages={storePages.map(({ title, slug }) => ({ title, slug }))}
       />
 
       {/* Page Body */}
@@ -1085,6 +1106,12 @@ export const AppContent: React.FC = () => {
         {route.view === 'policies' && (
           <PolicyPage initialTab={route.tab} />
         )}
+
+        {route.view === 'store-page' && (() => {
+          if (loading) return <AtelierPageFallback />;
+          const page = storePages.find((item) => item.slug === route.slug);
+          return page ? <StorePage page={page} onNavigateToShop={() => navigate({ view: 'shop' })} /> : <NotFoundPage onBackToShop={() => navigate({ view: 'shop' })} />;
+        })()}
 
         {route.view === '404' && (
           <NotFoundPage onBackToShop={() => navigate({ view: 'shop' })} />

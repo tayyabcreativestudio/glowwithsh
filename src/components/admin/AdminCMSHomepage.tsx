@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { HomepageCMS } from '../../types';
 import { Film, Loader2, Save, Upload } from 'lucide-react';
 import { api } from '../../services/api';
+import { MediaLibraryButton } from './MediaLibraryButton';
 
 interface AdminCMSHomepageProps {
   cms: HomepageCMS;
@@ -214,6 +215,7 @@ export const AdminCMSHomepage: React.FC<AdminCMSHomepageProps> = ({ cms, onSave 
             className="w-full px-3.5 py-2 text-xs font-sans bg-[#FAF7F3] border border-[#E7DED7] rounded font-mono"
           />
           <div className="mt-3 flex flex-wrap items-center gap-3">
+            <MediaLibraryButton videos onSelect={(url) => setFormData((current) => ({ ...current, hero: { ...current.hero, videoUrl: url } }))} />
             <input ref={videoInputRef} type="file" accept="video/mp4,video/webm,.mp4,.webm" className="hidden" onChange={(event) => handleVideoUpload(event.target.files?.[0])} />
             <button type="button" disabled={uploadingVideo} onClick={() => videoInputRef.current?.click()} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#241E1C] text-white text-xs font-semibold disabled:opacity-60">
               {uploadingVideo ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
@@ -270,9 +272,7 @@ export const AdminCMSHomepage: React.FC<AdminCMSHomepageProps> = ({ cms, onSave 
         </div>
 
         <div>
-          <label className="block text-xs font-sans font-semibold text-[#241E1C] mb-1">
-            Editorial Feature Image URL
-          </label>
+          <div className="mb-1 flex items-center justify-between"><label className="block text-xs font-sans font-semibold text-[#241E1C]">Editorial Feature Image URL</label><MediaLibraryButton onSelect={(url) => setFormData((current) => ({ ...current, editorialStatement: { ...current.editorialStatement, image: url } }))} /></div>
           <input
             type="url"
             value={formData.editorialStatement.image || ''}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BlogPost } from '../../types';
 import { formatDate } from '../../utils/format';
 import { Plus, Edit, Trash2, FileText, CheckCircle2, EyeOff } from 'lucide-react';
+import { MediaLibraryButton } from './MediaLibraryButton';
 
 interface AdminBlogProps {
   posts: BlogPost[];
@@ -230,9 +231,7 @@ export const AdminBlog: React.FC<AdminBlogProps> = ({ posts, onSavePost, onDelet
             </div>
 
             <div>
-              <label className="block text-xs font-sans font-semibold text-[#241E1C] mb-1">
-                Cover Photo URL
-              </label>
+              <div className="mb-1 flex items-center justify-between"><label className="block text-xs font-sans font-semibold text-[#241E1C]">Cover Photo URL</label><MediaLibraryButton onSelect={setCoverImage} /></div>
               <input
                 type="url"
                 required

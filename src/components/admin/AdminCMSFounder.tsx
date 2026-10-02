@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FounderCMS } from '../../types';
 import { Save } from 'lucide-react';
+import { MediaLibraryButton } from './MediaLibraryButton';
 
 interface AdminCMSFounderProps {
   founder: FounderCMS;
@@ -107,9 +108,7 @@ export const AdminCMSFounder: React.FC<AdminCMSFounderProps> = ({ founder, onSav
         </div>
 
         <div>
-          <label className="block text-xs font-sans font-semibold text-[#241E1C] mb-1">
-            Portrait Photo URL
-          </label>
+          <div className="mb-1 flex items-center justify-between"><label className="block text-xs font-sans font-semibold text-[#241E1C]">Portrait Photo URL</label><MediaLibraryButton onSelect={(url) => setFormData({ ...formData, image: url })} /></div>
           <input
             type="url"
             value={formData.image}

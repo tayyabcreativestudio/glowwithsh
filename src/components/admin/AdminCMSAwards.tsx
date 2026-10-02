@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Award } from '../../types';
 import { Plus, Edit, Trash2, Award as AwardIcon, CheckCircle2, ExternalLink } from 'lucide-react';
+import { MediaLibraryButton } from './MediaLibraryButton';
 
 interface AdminCMSAwardsProps {
   awards: Award[];
@@ -20,6 +21,7 @@ export const AdminCMSAwards: React.FC<AdminCMSAwardsProps> = ({
   const [organization, setOrganization] = useState('');
   const [year, setYear] = useState('2025');
   const [description, setDescription] = useState('');
+  const [image, setImage] = useState('');
   const [externalLink, setExternalLink] = useState('');
   const [verified, setVerified] = useState(true);
   const [published, setPublished] = useState(true);
@@ -32,6 +34,7 @@ export const AdminCMSAwards: React.FC<AdminCMSAwardsProps> = ({
     setOrganization('');
     setYear('2025');
     setDescription('');
+    setImage('');
     setExternalLink('');
     setVerified(true);
     setPublished(true);
@@ -44,6 +47,7 @@ export const AdminCMSAwards: React.FC<AdminCMSAwardsProps> = ({
     setOrganization(a.organization);
     setYear(a.year);
     setDescription(a.description);
+    setImage(a.image || '');
     setExternalLink(a.externalLink || '');
     setVerified(a.verified);
     setPublished(a.published);
@@ -59,6 +63,7 @@ export const AdminCMSAwards: React.FC<AdminCMSAwardsProps> = ({
         organization,
         year,
         description,
+        image,
         externalLink,
         verified,
         published,
@@ -113,6 +118,7 @@ export const AdminCMSAwards: React.FC<AdminCMSAwardsProps> = ({
               </div>
 
               <h3 className="font-serif text-xl text-[#241E1C]">{a.title}</h3>
+              {a.image && <img src={a.image} alt={a.title} className="h-36 w-full rounded-lg object-cover" />}
               <p className="text-xs font-sans text-[#665D58] leading-relaxed">
                 {a.description}
               </p>
@@ -211,6 +217,12 @@ export const AdminCMSAwards: React.FC<AdminCMSAwardsProps> = ({
                   placeholder="Details regarding the recognition..."
                   className="w-full px-3.5 py-2 bg-[#FAF7F3] border border-[#E7DED7] rounded"
                 />
+              </div>
+
+              <div>
+                <div className="mb-1 flex items-center justify-between"><label className="block font-semibold text-[#241E1C]">Award image</label><MediaLibraryButton onSelect={setImage} /></div>
+                <input type="url" value={image} onChange={(e) => setImage(e.target.value)} placeholder="Paste an image URL or choose from media" className="w-full px-3.5 py-2 bg-[#FAF7F3] border border-[#E7DED7] rounded" />
+                {image && <img src={image} alt="Award preview" className="mt-2 h-24 w-36 rounded-lg object-cover" />}
               </div>
 
               <div>

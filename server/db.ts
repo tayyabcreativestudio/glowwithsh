@@ -18,6 +18,7 @@ import {
   MediaItem,
   AdminUser,
   ActivityLog,
+  StorePage,
 } from '../src/types';
 import {
   initialProducts,
@@ -50,6 +51,7 @@ export interface DatabaseSchema {
   reviews: Review[];
   discounts: DiscountCode[];
   media: MediaItem[];
+  pages: StorePage[];
   admins: AdminUser[];
   activityLogs: ActivityLog[];
   processedPaymentIds?: string[];
@@ -177,6 +179,7 @@ const defaultDatabase: DatabaseSchema = {
       uploadedAt: '2026-01-28T10:00:00Z',
     },
   ],
+  pages: [],
   admins: [
     {
       ...initialAdminUser,
@@ -290,11 +293,16 @@ export function loadDatabase(): DatabaseSchema {
       if (content && content.trim().length > 0) {
         try {
           memoryDb = JSON.parse(content);
+          let needsPageMigration = false;
           if (!memoryDb.orders || !Array.isArray(memoryDb.orders)) memoryDb.orders = [];
           if (!Array.isArray(memoryDb.processedPaymentIds)) memoryDb.processedPaymentIds = [];
           if (!Array.isArray(memoryDb.processedWebhookKeys)) memoryDb.processedWebhookKeys = [];
+          if (!Array.isArray(memoryDb.pages)) {
+            memoryDb.pages = [];
+            needsPageMigration = true;
+          }
 
-          const migrated = migrateDatabaseSecurity(memoryDb);
+          const migrated = migrateDatabaseSecurity(memoryDb) || needsPageMigration;
           if (migrated) {
             saveDatabase(memoryDb);
           }

@@ -14,7 +14,14 @@ npm install
 npm run dev
 ```
 
-The application runs on `http://localhost:3000`.
+The storefront runs on `http://localhost:5173` and the admin console runs on `http://localhost:5174/admin`.
+
+## Store management
+
+- **Categories** lets you create storefront categories, choose their cover image from the media library, and assign any saved product. Draft and out-of-stock products can be assigned before they are published or restocked.
+- **Media library** lets you upload multiple JPG, PNG, or WebP images, organize them by use, search existing assets, and copy their URLs.
+- Image fields across products, categories, homepage content, founder content, awards, social posts, and pages include a **Choose from media** picker for reusing uploaded assets.
+- **Pages** lets you create a custom URL, write page copy, add a cover image and SEO metadata, then save it as a draft or publish it. Published pages appear in the storefront's Pages menu and sitemap.
 
 ---
 
