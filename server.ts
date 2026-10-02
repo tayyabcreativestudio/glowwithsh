@@ -157,7 +157,9 @@ function isAdministrativeContext(req: Request): boolean {
   // of routing it to this Node.js process. This explicit opt-in keeps the
   // authenticated admin APIs usable at /admin on the same deployed origin.
   const sameOriginAdmin = process.env.ADMIN_SAME_ORIGIN?.trim().toLowerCase() === 'true';
-  return sameOriginAdmin || isLocalAdminPort || isSubdomainAdmin;
+  const isAdminPath = req.path === '/admin' || req.path.startsWith('/admin/') ||
+    req.path === '/admin-login' || req.path.startsWith('/api/admin') || req.path === '/api/upload';
+  return (sameOriginAdmin && isAdminPath) || isLocalAdminPort || isSubdomainAdmin;
 }
 
 // Security Boundary: Storefront Port (Main Domain) vs Admin Subdomain / Port
@@ -199,6 +201,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Capture raw body Buffer for webhook verification while parsing standard JSON
+// A 5 MB image expands to roughly 6.7 MB in its base64 JSON request.
+// Use a larger parser only for image uploads; other API requests stay at 2 MB.
+app.use('/api/admin/upload', express.json({ limit: '7mb' }));
 app.use(
   express.json({
     limit: '2mb',
