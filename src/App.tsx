@@ -23,6 +23,7 @@ import {
 import { AnnouncementBar } from './components/common/AnnouncementBar';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
+import { AnalyticsConsent } from './components/common/AnalyticsConsent';
 import { SearchOverlay } from './components/common/SearchOverlay';
 import { CartDrawer } from './components/common/CartDrawer';
 import { Toast } from './components/common/Toast';
@@ -502,7 +503,7 @@ export const AppContent: React.FC = () => {
       }
       await refreshAllData();
     } catch (err: any) {
-      alert(err.message || 'Failed to save collection');
+      throw new Error(err.message || 'Failed to save collection');
     }
   };
 
@@ -1055,6 +1056,7 @@ export const AppContent: React.FC = () => {
 
       {/* Global Footer */}
       <Footer onNavigate={handleNavigatePath} />
+      <AnalyticsConsent routeKey={JSON.stringify(route)} />
 
       {/* Slide-over Cart Drawer */}
       <CartDrawer

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Truck, RotateCcw, ShieldCheck, FileText, Sparkles, Building2 } from 'lucide-react';
 
 interface PolicyPageProps {
@@ -9,8 +9,10 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ initialTab = 'shipping' 
   const [activeTab, setActiveTab] = useState<'shipping' | 'refunds' | 'privacy' | 'terms' | 'disclaimer' | 'contact' | 'faq'>(
     initialTab
   );
+  useEffect(() => setActiveTab(initialTab), [initialTab]);
 
   const tabs = [
+    { id: 'faq', label: 'FAQs', icon: Sparkles },
     { id: 'shipping', label: 'Shipping & Delivery', icon: Truck },
     { id: 'refunds', label: 'Refunds & Returns', icon: RotateCcw },
     { id: 'privacy', label: 'Privacy Policy', icon: ShieldCheck },
@@ -25,13 +27,13 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ initialTab = 'shipping' 
         {/* Header */}
         <div className="text-center space-y-2">
           <span className="text-[11px] uppercase font-sans tracking-[0.25em] text-[#7C3AED] font-semibold bg-[#7C3AED]/10 px-3.5 py-1 rounded-full border border-[#7C3AED]/20 inline-block">
-            LEGAL COMPLIANCE &amp; TRUST
+            CUSTOMER INFORMATION
           </span>
           <h1 className="font-serif text-3xl sm:text-5xl text-[#1E1630] font-normal">
             Customer Policies &amp; <span className="gradient-text">Statutory Details</span>
           </h1>
           <p className="text-xs text-[#6B5F82] font-sans">
-            Effective Date: 28 September 2026 | Compliant with Indian Consumer Protection (E-Commerce) Rules, 2020 &amp; DPDP Guidelines
+            Shipping, returns, privacy and store contact information.
           </p>
         </div>
 
@@ -59,6 +61,13 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ initialTab = 'shipping' 
 
         {/* Policy Content Body */}
         <div className="glass-card p-8 sm:p-12 rounded-3xl border border-[#DDD6F3] shadow-sm font-sans text-sm text-[#6B5F82] leading-relaxed space-y-6">
+          {activeTab === 'faq' && <div className="space-y-5">
+            <h2 className="font-serif text-2xl text-[#1E1630]">Frequently Asked Questions</h2>
+            <div><h3 className="font-semibold text-[#1E1630]">How do I check my order?</h3><p>Use Track Order with your order ID and the phone number entered at checkout.</p></div>
+            <div><h3 className="font-semibold text-[#1E1630]">Which payment methods are available?</h3><p>Checkout shows the currently enabled methods. Online payment is available only when the store has configured it.</p></div>
+            <div><h3 className="font-semibold text-[#1E1630]">How much is delivery?</h3><p>Review the delivery charge and final total in checkout before placing your order.</p></div>
+            <div><h3 className="font-semibold text-[#1E1630]">Where can I ask about a product or a return?</h3><p>Use the Contact page or the store’s listed support number. Include your order ID for order enquiries.</p></div>
+          </div>}
           {/* SHIPPING POLICY */}
           {activeTab === 'shipping' && (
             <div className="space-y-6">
@@ -104,7 +113,7 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ initialTab = 'shipping' 
               <div className="space-y-3">
                 <h3 className="font-serif text-lg text-[#1E1630]">5. Tracking &amp; Delivery Updates</h3>
                 <p>
-                  Once dispatched, tracking links and courier AWB details are shared via email and WhatsApp. Customers may track their package directly using our verified Order Tracking portal using their Order ID and registered phone number.
+                  Use Track Order with your order ID and checkout phone number. Courier details appear after the store adds them to your order. Contact support if you need a delivery update.
                 </p>
               </div>
 
@@ -125,7 +134,7 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ initialTab = 'shipping' 
                 <p className="text-xs text-[#7C3AED] font-medium mt-1">Effective Date: 28 September 2026</p>
               </div>
               <p>
-                Because our cosmetic formulations involve personal hygiene, sealed botanical ingredients, and strict safety protocols, open returns are limited under Indian health regulations. However, we guarantee complete resolution for any genuine quality, damage, or fulfillment issue.
+                Contact support about damaged, incorrect or unsatisfactory items. Include your order ID and details so the store can review the issue and explain the available return or refund options.
               </p>
 
               <div className="space-y-3">
@@ -204,7 +213,7 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ initialTab = 'shipping' 
                 </p>
                 <ul className="list-disc pl-5 space-y-1">
                   <li>Process, confirm, package, and dispatch your orders.</li>
-                  <li>Generate legal tax invoices compliant with Indian GST laws.</li>
+                  <li>Maintain order and payment records.</li>
                   <li>Provide delivery tracking and customer support notifications.</li>
                   <li>Prevent fraud, abusive checkout attempts, and unauthorized payment activity.</li>
                 </ul>
@@ -213,7 +222,7 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ initialTab = 'shipping' 
               <div className="space-y-3">
                 <h3 className="font-serif text-lg text-[#1E1630]">3. No Sale of Customer Data</h3>
                 <p>
-                  We strictly <strong>never sell, lease, or monetize</strong> customer personal data to third-party data brokers or marketing aggregators. Information is shared solely with essential logistics couriers and payment gateways to fulfill your orders.
+                  Order information is used for fulfilment, payment handling and customer support. Optional Google Analytics also receives visit and shopping-event information when you allow analytics.
                 </p>
               </div>
 
@@ -222,6 +231,11 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ initialTab = 'shipping' 
                 <p>
                   Transactional records are maintained for the statutory period required under Indian financial and commercial taxation laws. You have the right to request access to your data or request deletion of non-statutory records by contacting our Grievance Officer at <strong className="text-[#7C3AED]">grievance@glowwithsh.com</strong>.
                 </p>
+              </div>
+              <div className="space-y-3">
+                <h3 className="font-serif text-lg text-[#1E1630]">Optional Analytics</h3>
+                <p>With your permission, Google Analytics measures page visits and shopping events, including product details, prices and order references. Our custom events exclude your name, phone number, email, address and payment credentials. Choose Allow analytics or Decline in Analytics preferences; you can change your choice using the button at the bottom of the page.</p>
+                <p><a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer" className="underline">Google Privacy Policy</a></p>
               </div>
             </div>
           )}
@@ -317,7 +331,7 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ initialTab = 'shipping' 
                     <strong className="text-[#1E1630]">Founder &amp; Principal Formulator:</strong> Shagufi Hussain<br />
                     <strong className="text-[#1E1630]">Registered Atelier Address:</strong><br />
                     E Block street no 08, Pahadi mandir wali gali, Subhash Vihar, Delhi 110053, India<br />
-                    <strong className="text-[#1E1630]">GSTIN:</strong> Shown on the official tax invoice for each order.
+                    <strong className="text-[#1E1630]">Tax details:</strong> Contact the store for its current registration and invoice information.
                   </p>
                 </div>
 

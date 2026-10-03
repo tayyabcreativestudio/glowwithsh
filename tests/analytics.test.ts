@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { analyticsItem, trackCommerce, trackPurchase, setAnalyticsConsent } from '../src/utils/analytics';
+import { analyticsItem, trackCommerce, trackPurchase, setAnalyticsConsent, initializeGoogleAnalytics, trackPageView, GOOGLE_ANALYTICS_ID } from '../src/utils/analytics';
 import type { Product, Order } from '../src/types';
 
 test('commerce measurement requires explicit consent, excludes PII and deduplicates completed purchases', () => {
@@ -30,5 +30,36 @@ test('commerce measurement requires explicit consent, excludes PII and deduplica
   } finally {
     if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow); else Reflect.deleteProperty(globalThis, 'window');
     if (previousStorage) Object.defineProperty(globalThis, 'localStorage', previousStorage); else Reflect.deleteProperty(globalThis, 'localStorage');
+  }
+});
+
+test('Google tag loads once after consent, sends gtag commerce and excludes private page views', () => {
+  const originals = ['window', 'document', 'localStorage'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)] as const);
+  const stored = new Map<string, string>();
+  const scripts: any[] = [];
+  const browser: any = { location: { origin: 'https://www.glowwithsh.com', pathname: '/shop', search: '?email=private' }, dataLayer: [] };
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: browser });
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement: () => ({}), head: { appendChild: (script: any) => scripts.push(script) } } });
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: (key: string) => stored.get(key), setItem: (key: string, value: string) => stored.set(key, value) } });
+  try {
+    initializeGoogleAnalytics(); assert.equal(scripts.length, 0);
+    setAnalyticsConsent(true); initializeGoogleAnalytics(); initializeGoogleAnalytics();
+    assert.equal(scripts.length, 1);
+    assert.equal(scripts[0].src, `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`);
+    trackPageView();
+    assert.equal(browser.dataLayer.at(-1)[1], 'page_view');
+    assert.equal(browser.dataLayer.at(-1)[2].page_location, 'https://www.glowwithsh.com/shop');
+    const count = browser.dataLayer.length;
+    browser.location.pathname = '/admin'; trackPageView(); assert.equal(browser.dataLayer.length, count);
+    trackCommerce('add_to_cart', [], 20); assert.equal(browser.dataLayer.at(-1)[1], 'add_to_cart');
+    assert.equal(JSON.stringify(browser.dataLayer).includes('private'), false);
+    setAnalyticsConsent(false);
+    assert.equal(browser[`ga-disable-${GOOGLE_ANALYTICS_ID}`], true);
+    const deniedCount = browser.dataLayer.length;
+    trackPageView(); trackCommerce('view_cart', []); assert.equal(browser.dataLayer.length, deniedCount);
+  } finally {
+    for (const [key, descriptor] of originals) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key);
+    }
   }
 });

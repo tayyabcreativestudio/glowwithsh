@@ -4,6 +4,8 @@ Date: 2026-10-03. Scope: repository implementation and isolated local production
 
 ## Executive summary
 
+Follow-up: the owner supplied Google Analytics/Search Console identifiers. The consent-controlled integration, additional admin/media/category/page fixes and latest validation are documented in `READINESS_FOLLOWUP_2026-10-03.md`. Final follow-up counts are 43 unit tests, 175 HTTP assertions per JSON/SQLite driver and 15 fake-gateway assertions. Earlier counts below describe the original audit. Google dashboard receipt and domain verification still require deployment/account steps.
+
 The live homepage and `/api/health` returned 200. The older live build still has generic initial HTML with no H1 and a homepage canonical on Shop. New code corrects that locally. Checkout/admin/media safeguards, safer storage, public rendering, metadata, navigation, copy and responsive images are implemented. Deployment remains separate because the actual Hostinger persistent path and production backup have not been confirmed. This is not a claim that the commercial store is fully production-ready or legally compliant.
 
 The latest live audit also confirms that `/api/products` exposes the internal costPrice field and `includeDrafts=true` accepts unauthenticated requests (there were no extra draft items in this snapshot). These security issues remain LIVE until the prepared changes are deployed. Unauthenticated `/api/admin/media` returns 401; authorized login/media listing return 200 with four media entries. No new live upload/persistence test was performed in this audit.

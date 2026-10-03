@@ -221,7 +221,7 @@ export const AdminCMSAwards: React.FC<AdminCMSAwardsProps> = ({
 
               <div>
                 <div className="mb-1 flex items-center justify-between"><label className="block font-semibold text-[#241E1C]">Award image</label><MediaLibraryButton onSelect={setImage} /></div>
-                <input type="url" value={image} onChange={(e) => setImage(e.target.value)} placeholder="Paste an image URL or choose from media" className="w-full px-3.5 py-2 bg-[#FAF7F3] border border-[#E7DED7] rounded" />
+                <input type="text" inputMode="url" value={image} onChange={(e) => setImage(e.target.value)} placeholder="Paste an image URL or choose from media" className="w-full px-3.5 py-2 bg-[#FAF7F3] border border-[#E7DED7] rounded" />
                 {image && <img src={image} alt="Award preview" className="mt-2 h-24 w-36 rounded-lg object-cover" />}
               </div>
 

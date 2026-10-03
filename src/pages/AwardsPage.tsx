@@ -23,7 +23,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ awards, onNavigateToShop
             Awards &amp; <span className="gradient-text">Milestones</span>
           </h1>
           <p className="font-sans text-base text-[#6B5F82] max-w-xl mx-auto leading-relaxed">
-            Every recognition and certificate presented here reflects formal independent evaluation and verified founder achievements.
+            Explore recognitions and milestones published by GlowWithSH.
           </p>
         </div>
 
@@ -31,7 +31,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ awards, onNavigateToShop
         <div className="glass-card p-5 rounded-2xl border border-[#DDD6F3] flex items-center gap-4 text-xs font-sans text-[#6B5F82] shadow-sm">
           <ShieldCheck size={20} className="text-[#7C3AED] shrink-0" />
           <p>
-            In alignment with GlowWithSH's ethical transparency mandate, our platform maintains a zero-fabrication standard. Only audited industry recognitions verified by our administration team are published.
+            These entries are reviewed by the store administrator before publication. Follow the source links where available, or contact us for supporting information.
           </p>
         </div>
 

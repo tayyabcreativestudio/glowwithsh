@@ -274,7 +274,7 @@ export const AdminCMSHomepage: React.FC<AdminCMSHomepageProps> = ({ cms, onSave 
         <div>
           <div className="mb-1 flex items-center justify-between"><label className="block text-xs font-sans font-semibold text-[#241E1C]">Editorial Feature Image URL</label><MediaLibraryButton onSelect={(url) => setFormData((current) => ({ ...current, editorialStatement: { ...current.editorialStatement, image: url } }))} /></div>
           <input
-            type="url"
+            type="text" inputMode="url"
             value={formData.editorialStatement.image || ''}
             onChange={(e) =>
               setFormData({

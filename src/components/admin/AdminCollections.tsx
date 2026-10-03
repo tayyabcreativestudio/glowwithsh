@@ -25,8 +25,10 @@ export const AdminCollections: React.FC<AdminCollectionsProps> = ({
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [productQuery, setProductQuery] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const handleOpenNew = () => {
+    setSaveError('');
     setEditingCat(null);
     setIsNew(true);
     setName('');
@@ -38,6 +40,7 @@ export const AdminCollections: React.FC<AdminCollectionsProps> = ({
   };
 
   const handleOpenEdit = (cat: Category) => {
+    setSaveError('');
     setEditingCat(cat);
     setIsNew(false);
     setName(cat.name);
@@ -51,6 +54,7 @@ export const AdminCollections: React.FC<AdminCollectionsProps> = ({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setSaveError('');
     try {
       await onSaveCategory({
         id: editingCat?.id,
@@ -62,8 +66,8 @@ export const AdminCollections: React.FC<AdminCollectionsProps> = ({
       });
       setEditingCat(null);
       setIsNew(false);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setSaveError(e.message || 'Could not save category. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -160,6 +164,7 @@ export const AdminCollections: React.FC<AdminCollectionsProps> = ({
             <h3 className="font-serif text-2xl text-[#241E1C]">
               {isNew ? 'Create Product Category' : `Edit: ${editingCat?.name}`}
             </h3>
+            {saveError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{saveError}</p>}
 
             <div>
               <label className="block text-xs font-sans font-semibold text-[#241E1C] mb-1">

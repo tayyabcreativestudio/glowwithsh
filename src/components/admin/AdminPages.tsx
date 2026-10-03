@@ -9,7 +9,7 @@ interface AdminPagesProps { onChanged?: () => Promise<void> | void; }
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const getStorefrontPageUrl = (slug: string) => {
   const hostname = window.location.hostname.replace(/^admin\./, '');
-  const port = hostname === 'localhost' || hostname === '127.0.0.1' ? ':5173' : '';
+  const port = window.location.port ? `:${window.location.port}` : '';
   return `${window.location.protocol}//${hostname}${port}/${slug}`;
 };
 
@@ -76,7 +76,7 @@ export const AdminPages: React.FC<AdminPagesProps> = ({ onChanged }) => {
           <label className="block text-xs font-medium text-zinc-700">Title<input required maxLength={120} value={title} onChange={(e) => { setTitle(e.target.value); if (!active) setSlug(slugify(e.target.value)); }} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm" placeholder="Our story, FAQs, custom landing page…" /></label>
           <label className="block text-xs font-medium text-zinc-700">URL<input required maxLength={120} value={slug} onChange={(e) => setSlug(slugify(e.target.value))} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm" placeholder="your-page-url" /><span className="mt-1 block text-[11px] text-zinc-500">Your page will be available at /{slug || 'your-page-url'}</span></label>
           <label className="block text-xs font-medium text-zinc-700">Page copy<textarea rows={14} maxLength={100000} value={content} onChange={(e) => setContent(e.target.value)} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm leading-6" placeholder="Write the content customers should see. Separate paragraphs with a blank line." /></label>
-          <div><div className="mb-2 flex items-center justify-between"><span className="text-xs font-medium text-zinc-700">Header image <span className="font-normal text-zinc-400">(optional)</span></span><MediaLibraryButton onSelect={setCoverImage} /></div><input type="url" value={coverImage} onChange={(e) => setCoverImage(e.target.value)} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-xs" placeholder="Paste an image URL or choose from media" />{coverImage && <img src={coverImage} alt="Page header preview" className="mt-3 max-h-52 w-full rounded-lg object-cover" />}</div>
+          <div><div className="mb-2 flex items-center justify-between"><span className="text-xs font-medium text-zinc-700">Header image <span className="font-normal text-zinc-400">(optional)</span></span><MediaLibraryButton onSelect={setCoverImage} /></div><input type="text" inputMode="url" value={coverImage} onChange={(e) => setCoverImage(e.target.value)} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-xs" placeholder="Paste an image URL or choose from media" />{coverImage && <img src={coverImage} alt="Page header preview" className="mt-3 max-h-52 w-full rounded-lg object-cover" />}</div>
         </section>
         <section className="space-y-3 rounded-xl border border-zinc-200 bg-white p-5 shadow-xs">
           <h2 className="font-semibold text-zinc-900">Search engine listing</h2>

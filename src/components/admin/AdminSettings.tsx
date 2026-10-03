@@ -298,7 +298,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
 
               <div>
                 <input
-                  type="url"
+                  type="text" inputMode="url"
                   value={formData.socialSharingImage || ''}
                   onChange={(e) => setFormData({ ...formData, socialSharingImage: e.target.value })}
                   placeholder="Or enter image URL: https://..."

@@ -101,11 +101,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
-    "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com",
+    "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://www.googletagmanager.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com",
+    "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
     "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com",
   ].join('; ');
 
@@ -831,9 +831,9 @@ app.get('/api/categories', (_req: Request, res: Response) => {
 app.post('/api/admin/categories', (req: Request, res: Response) => {
   const db = getDatabase();
   const { name, description, image, productIds } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name is required' });
+  if (typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required' });
 
-  const slug = generateSlug(name);
+  const slug = generateSlug(typeof req.body.slug === 'string' ? req.body.slug : name);
   if (!slug) return res.status(400).json({ error: 'A valid category name is required' });
   if (db.categories.some((category) => category.slug === slug)) return res.status(409).json({ error: 'A category with this URL already exists' });
   const id = `cat-${slug}`;
@@ -866,9 +866,15 @@ app.patch('/api/admin/categories/:id', (req: Request, res: Response) => {
   if (index === -1) return res.status(404).json({ error: 'Category not found' });
 
   const existing = db.categories[index];
-  const { productIds, ...categoryUpdates } = req.body;
-  const updated = { ...existing, ...categoryUpdates };
-  if (req.body.name && !req.body.slug) updated.slug = generateSlug(req.body.name);
+  const { productIds } = req.body;
+  const updated = { ...existing,
+    name: typeof req.body.name === 'string' ? sanitizeString(req.body.name).trim() : existing.name,
+    description: typeof req.body.description === 'string' ? sanitizeString(req.body.description) : existing.description,
+    image: typeof req.body.image === 'string' ? req.body.image : existing.image,
+    slug: typeof req.body.slug === 'string' ? generateSlug(req.body.slug) :
+      typeof req.body.name === 'string' ? generateSlug(req.body.name) : existing.slug,
+  };
+  if (!updated.name) return res.status(400).json({ error: 'Name is required' });
   if (!updated.slug) return res.status(400).json({ error: 'A valid category name is required' });
   if (db.categories.some((category, categoryIndex) => categoryIndex !== index && category.slug === updated.slug)) {
     return res.status(409).json({ error: 'A category with this URL already exists' });
@@ -2016,6 +2022,7 @@ app.delete('/api/admin/blog/:id', (req: Request, res: Response) => {
 // ----------------------------------------------------
 const RESERVED_PAGE_SLUGS = new Set(['shop', 'product', 'journal', 'blog', 'cart', 'checkout', 'admin', 'admin-login', 'about', 'founder', 'awards', 'contact', 'policies', 'track-order', 'track', 'wishlist', 'quiz', 'order-confirmation']);
 const normalizePageSlug = (value: unknown) => generateSlug(typeof value === 'string' ? value : '');
+for (const slug of ['api', 'assets', 'uploads', 'videos', 'images', 'brand', 'admin-login']) RESERVED_PAGE_SLUGS.add(slug);
 
 app.get('/api/pages', (_req: Request, res: Response) => {
   res.json(getDatabase().pages.filter((page) => page.status === 'published'));
@@ -2063,7 +2070,7 @@ app.patch('/api/admin/pages/:id', (req: Request, res: Response) => {
   if (index < 0) return res.status(404).json({ error: 'Page not found' });
   const existing = db.pages[index];
   const title = typeof req.body.title === 'string' ? sanitizeString(req.body.title).trim() : existing.title;
-  const slug = normalizePageSlug(req.body.slug || title);
+  const slug = normalizePageSlug(typeof req.body.slug === 'string' ? req.body.slug : existing.slug);
   if (!title) return res.status(400).json({ error: 'Page title is required' });
   if (!slug || RESERVED_PAGE_SLUGS.has(slug)) return res.status(400).json({ error: 'Choose a different page URL' });
   if (db.pages.some((page, pageIndex) => pageIndex !== index && page.slug === slug)) return res.status(409).json({ error: 'That page URL is already in use' });
@@ -2358,6 +2365,7 @@ app.patch('/api/admin/reviews/:id', (req: Request, res: Response) => {
   const review = db.reviews.find((r) => r.id === id);
   if (!review) return res.status(404).json({ error: 'Review not found' });
 
+  if (req.body.status && !['pending', 'approved', 'rejected'].includes(req.body.status)) return res.status(400).json({ error: 'Invalid review status' });
   if (req.body.status) review.status = req.body.status;
   saveDatabase(db);
   res.json(review);

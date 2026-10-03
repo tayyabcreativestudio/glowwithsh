@@ -247,7 +247,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     customer_name VARCHAR(150) NOT NULL,
     rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
     review_text TEXT NOT NULL,
-    verified_purchase BOOLEAN NOT NULL DEFAULT TRUE,
+    verified_purchase BOOLEAN NOT NULL DEFAULT FALSE,
     status VARCHAR(30) NOT NULL DEFAULT 'pending',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

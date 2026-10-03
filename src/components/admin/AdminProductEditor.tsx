@@ -433,7 +433,7 @@ export const AdminProductEditor: React.FC<AdminProductEditorProps> = ({
             {/* Add from URL alternative */}
             <div className="pt-2 border-t border-[#E1E3E5] flex items-center gap-2">
               <input
-                type="url"
+                type="text" inputMode="url"
                 value={newImageUrl}
                 onChange={(e) => setNewImageUrl(e.target.value)}
                 placeholder="Or paste external image URL (e.g. Unsplash or CDN)..."
