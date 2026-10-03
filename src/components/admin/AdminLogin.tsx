@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, User, ArrowRight } from 'lucide-react';
 import { api } from '../../services/api';
+import { BrandMark } from '../common/BrandMark';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
@@ -32,9 +33,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
       <div className="w-full max-w-md bg-white rounded-2xl p-8 sm:p-10 shadow-2xl border border-[#3E3430] space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-1">
-          <div className="w-12 h-12 rounded-full bg-[#FAF7F3] border border-[#E7DED7] flex items-center justify-center text-[#C4A36A] mx-auto mb-3">
-            <Lock size={20} />
-          </div>
+          <BrandMark className="w-12 h-12 mx-auto mb-3" />
           <span className="font-serif text-2xl tracking-widest text-[#241E1C]">
             GLOW<span className="font-light italic text-[#C4A36A]">with</span>SH
           </span>

@@ -49,7 +49,7 @@ export function pageSeo(pathname: string, db: DatabaseSchema) {
   if (path === '/') {
     h1 = 'GlowWithSH Skincare & Beauty';
     content += `<h2>Shop by category</h2><ul>${db.categories.map(category => `<li>${link(`/shop/category/${category.slug}`, category.name)}</li>`).join('')}</ul>`;
-    schema.push({ '@context': 'https://schema.org', '@type': 'Organization', name: 'GlowWithSH', url: SITE_ORIGIN,
+    schema.push({ '@context': 'https://schema.org', '@type': 'Organization', name: 'GlowWithSH', url: SITE_ORIGIN, logo: `${SITE_ORIGIN}/brand/glowwithsh-mark.svg`,
       founder: { '@type': 'Person', name: 'Shagufi Hussain' } },
       { '@context': 'https://schema.org', '@type': 'WebSite', name: 'GlowWithSH', url: SITE_ORIGIN });
   }

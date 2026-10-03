@@ -3,6 +3,7 @@ import { Search, ShoppingBag, Menu, X, Sparkles, Truck, Heart } from 'lucide-rea
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { StorePage } from '../../types';
+import { BrandMark } from './BrandMark';
 
 interface HeaderProps {
   currentPath: string;
@@ -57,11 +58,12 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenS
             <button
               id="brand-logo-btn"
               onClick={() => handleLinkClick('/')}
-              className="text-left group cursor-pointer focus:outline-none"
+              className="flex items-center gap-2 text-left group cursor-pointer"
               aria-label="GlowWithSH Home"
             >
+              <BrandMark className="w-7 h-7 sm:w-9 sm:h-9" />
               <div className="flex flex-col">
-                <span className="font-serif text-2xl sm:text-3xl tracking-[0.12em] font-medium text-[#1E1630] group-hover:text-[#7C3AED] transition-colors leading-none">
+                <span className="font-serif text-xl sm:text-3xl tracking-[0.12em] font-medium text-[#1E1630] group-hover:text-[#7C3AED] transition-colors leading-none">
                   GLOW<span className="font-light italic gradient-text">with</span>SH
                 </span>
                 <span className="text-[9px] uppercase tracking-[0.25em] text-[#6B5F82] mt-1 font-sans">

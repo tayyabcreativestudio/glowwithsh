@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Instagram, Phone, MessageSquare, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { api } from '../../services/api';
+import { BrandMark } from './BrandMark';
 
 interface FooterProps {
   onNavigate: (path: string) => void;
@@ -35,13 +36,16 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8 pb-14 border-b border-[#A78BFA]/15">
           {/* Brand Intro Column */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="flex flex-col">
+            <div className="flex items-center gap-3">
+              <BrandMark className="w-12 h-12" />
+              <div className="flex flex-col">
               <span className="font-serif text-3xl tracking-widest font-medium text-white">
                 GLOW<span className="font-light italic text-[#A78BFA]">with</span>SH
               </span>
               <span className="text-[9px] uppercase tracking-[0.3em] text-[#C084FC] mt-1 font-sans">
                 FOUNDED BY SHAGUFI HUSSAIN
               </span>
+              </div>
             </div>
             <p className="text-sm font-sans text-white/65 leading-relaxed max-w-sm pt-2">
               Thoughtfully curated skincare rituals and beauty essentials created to become part of the way you care for and express yourself.

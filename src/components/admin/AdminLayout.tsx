@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrandMark } from '../common/BrandMark';
 import {
   LayoutDashboard,
   Package,
@@ -103,9 +104,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           </button>
 
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#E6D4BF] to-[#C4A36A] flex items-center justify-center text-[#1A1A1A] font-serif font-black text-sm tracking-wider shadow-xs">
-              SH
-            </div>
+            <BrandMark className="w-8 h-8" />
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="font-serif text-sm font-semibold tracking-wide text-zinc-100">

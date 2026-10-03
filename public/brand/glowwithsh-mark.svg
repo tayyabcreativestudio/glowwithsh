@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">GlowWithSH logo</title>
+  <defs><linearGradient id="glow" x2="1" y2="1"><stop stop-color="#7C3AED"/><stop offset="1" stop-color="#A78BFA"/></linearGradient></defs>
+  <rect width="64" height="64" rx="19" fill="#1E1630"/>
+  <path d="M44 22a17 17 0 1 0 3 20V33H32" fill="none" stroke="url(#glow)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m47 10 2.5 6.5L56 19l-6.5 2.5L47 28l-2.5-6.5L38 19l6.5-2.5Z" fill="#F8F5FF"/>
+</svg>
