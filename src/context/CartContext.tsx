@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, CartItem } from '../types';
+import { api } from '../services/api';
+import { analyticsItem, trackCommerce } from '../utils/analytics';
 
 interface CartContextType {
   items: CartItem[];
@@ -18,6 +20,7 @@ interface CartContextType {
   promoMinSpend: number;
   applyDiscount: (code: string, amount: number, minSpend?: number) => void;
   clearDiscount: () => void;
+  shippingSettings: { freeShippingThreshold: number; standardShippingFee: number };
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -52,8 +55,23 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [shippingSettings, setShippingSettings] = useState({ freeShippingThreshold: 999, standardShippingFee: 99 });
+  useEffect(() => {
+    api.getSiteSettings().then(settings => setShippingSettings({ freeShippingThreshold: settings.freeShippingThreshold, standardShippingFee: settings.standardShippingFee })).catch(() => {});
+  }, []);
 
   const subtotal = items.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+  useEffect(() => {
+    if (!promoState.code) return;
+    let cancelled = false;
+    const code = promoState.code;
+    api.validateDiscount(code, subtotal).then(discount => {
+      if (!cancelled) setPromoState(current => current.code === code ? { code, amount: discount.discountAmount, minSpend: discount.minSpend || 0 } : current);
+    }).catch(() => {
+      if (!cancelled) setPromoState(current => current.code === code ? { code: null, amount: 0, minSpend: 0 } : current);
+    });
+    return () => { cancelled = true; };
+  }, [subtotal, promoState.code]);
 
   useEffect(() => {
     try {
@@ -97,12 +115,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addToCart = (product: Product, quantity = 1) => {
     if (quantity <= 0) return;
-    const maxStock = product.trackInventory && !product.allowBackorders ? product.stockQuantity : 999;
+    const maxStock = Math.min(10, product.trackInventory && !product.allowBackorders ? product.stockQuantity : 10);
     
     if (maxStock <= 0) {
       showToast(`"${product.name}" is currently out of stock.`);
       return;
     }
+    const existingQuantity = items.find(item => item.product.id === product.id)?.quantity || 0;
+    const addedQuantity = Math.max(0, Math.min(quantity, maxStock - existingQuantity));
+    if (addedQuantity) trackCommerce('add_to_cart', [analyticsItem(product, addedQuantity)], product.price * addedQuantity);
 
     setItems((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
@@ -130,6 +151,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const removeFromCart = (productId: string) => {
+    const item = items.find(item => item.product.id === productId);
+    if (item) trackCommerce('remove_from_cart', [analyticsItem(item.product, item.quantity)], item.product.price * item.quantity);
     setItems((prev) => prev.filter((item) => item.product.id !== productId));
   };
 
@@ -141,9 +164,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems((prev) =>
       prev.map((item) => {
         if (item.product.id === productId) {
-          const maxStock = item.product.trackInventory && !item.product.allowBackorders
+          const maxStock = Math.min(10, item.product.trackInventory && !item.product.allowBackorders
             ? item.product.stockQuantity
-            : 999;
+            : 10);
           const cappedQty = Math.min(quantity, maxStock);
           if (quantity > maxStock) {
             showToast(`Maximum ${maxStock} units available for ${item.product.name}`);
@@ -181,6 +204,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         promoMinSpend: promoState.minSpend,
         applyDiscount,
         clearDiscount,
+        shippingSettings,
       }}
     >
       {children}

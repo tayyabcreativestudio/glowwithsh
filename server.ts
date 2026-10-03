@@ -41,9 +41,11 @@ import {
   requireConfiguredAuthSecret,
   csrfOriginCheck,
   sanitizeString,
+  adminRoleAllows,
 } from './server/security';
 import {
   getRazorpayConfig,
+  onlinePaymentsEnabled,
   assertRazorpayConfiguration,
   createRazorpayOrder,
   verifyPaymentSignature,
@@ -65,6 +67,8 @@ import {
 } from './server/validation';
 import { generateSeoSuggestion } from './server/seo-ai';
 import { getIndiaOrderDateKey } from './server/order-id';
+import { pageSeo, renderSeoHtml, sitemapXml } from './server/seo';
+import { expireUnpaidReservations } from './server/order-reservations';
 
 // Assert production secrets on startup
 requireConfiguredAuthSecret();
@@ -85,7 +89,6 @@ const UPLOADS_DIR = process.env.UPLOADS_DIR
 
 // High performance compression
 app.use(compression());
-app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '7d', immutable: false }));
 
 // Production Security Headers & Content-Security-Policy
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -96,6 +99,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
   const csp = [
     "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
     "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
@@ -111,6 +116,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
   next();
 });
+app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '7d', immutable: false }));
 
 // Cross-Origin Resource Sharing (CORS) configured for Storefront and Admin Subdomain separation
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -127,14 +133,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
   if (
     origin &&
-    (allowedOrigins.includes(origin) ||
-      origin.endsWith(`:${ADMIN_PORT}`) ||
-      origin.endsWith(`:${STOREFRONT_PORT}`))
+    allowedOrigins.includes(origin)
   ) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Idempotency-Key');
   }
 
   if (req.method === 'OPTIONS') {
@@ -255,6 +259,7 @@ const orderLookupRateLimiter = createRateLimiter(15 * 60_000, 20, 'order-lookup'
 const paymentRateLimiter = createRateLimiter(15 * 60_000, 20, 'payments');
 const reviewsRateLimiter = createRateLimiter(15 * 60_000, 10, 'reviews');
 const contactsRateLimiter = createRateLimiter(15 * 60_000, 10, 'contacts');
+app.use('/api', apiGeneralRateLimiter);
 
 // Helper: Logging administrative activities
 function logActivity(action: string, entity: string, entityId?: string, details?: string) {
@@ -298,6 +303,12 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
+app.get('/api/seo', (req: Request, res: Response) => {
+  if (typeof req.query.path !== 'string' || req.query.path.length > 500) return res.status(400).json({ error: 'Invalid page path.' });
+  const { content, ...metadata } = pageSeo(req.query.path, getDatabase());
+  res.json(metadata);
+});
+
 // ----------------------------------------------------
 // 2. ADMIN AUTHENTICATION & RBAC
 // ----------------------------------------------------
@@ -319,12 +330,20 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
   if (!admin) {
     return res.status(401).json({ success: false, error: 'Admin account not found.' });
   }
+  if (!adminRoleAllows(admin.role, req.originalUrl, req.method)) return res.status(403).json({ success: false, error: 'Your admin role cannot access this operation.' });
 
   (req as any).adminUser = admin;
   next();
 }
 
-app.post('/api/admin/auth/login', (req: Request, res: Response) => {
+function hasAdminSession(req: Request): boolean {
+  const db = getDatabase();
+  const token = getSessionToken(req);
+  const session = token && verifySessionToken(token, db.siteSettings.adminTokenVersion || 1);
+  return Boolean(session && db.admins.some(user => user.id === session.sub));
+}
+
+app.post('/api/admin/auth/login', csrfOriginCheck, (req: Request, res: Response) => {
   const parseResult = adminLoginSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res.status(400).json({ success: false, error: parseResult.error.issues[0]?.message || 'Invalid input' });
@@ -357,7 +376,7 @@ app.post('/api/admin/auth/login', (req: Request, res: Response) => {
 
   const isValidPassword = verifyPassword(password, targetHash);
 
-  if (!isValidPassword) {
+  if (!admin || !isValidPassword) {
     recordLoginFailure(req, identifier);
     return res.status(401).json({
       success: false,
@@ -386,7 +405,7 @@ app.post('/api/admin/auth/login', (req: Request, res: Response) => {
   });
 });
 
-app.post('/api/admin/auth/logout', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/admin/auth/logout', csrfOriginCheck, requireAdminAuth, (req: Request, res: Response) => {
   const db = getDatabase();
   // Invalidate sessions by incrementing token version
   db.siteSettings.adminTokenVersion = (db.siteSettings.adminTokenVersion || 1) + 1;
@@ -398,7 +417,7 @@ app.post('/api/admin/auth/logout', requireAdminAuth, (req: Request, res: Respons
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
-app.post('/api/admin/auth/change-password', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/admin/auth/change-password', csrfOriginCheck, requireAdminAuth, (req: Request, res: Response) => {
   const parseResult = adminChangePasswordSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res.status(400).json({ error: parseResult.error.issues[0]?.message || 'Invalid password data' });
@@ -481,6 +500,10 @@ app.get('/api/products', (req: Request, res: Response) => {
   let results = [...db.products];
   const { category, collection, search, sort, includeDrafts, featured, bestSeller } = req.query;
 
+  const token = getSessionToken(req);
+  const session = token && verifySessionToken(token, db.siteSettings.adminTokenVersion || 1);
+  const admin = Boolean(session && db.admins.some(user => user.id === session.sub));
+  if (includeDrafts === 'true' && !admin) return res.status(401).json({ error: 'Admin authentication required.' });
   if (includeDrafts !== 'true') {
     results = results.filter((p) => p.status === 'published' && p.visible !== false);
   }
@@ -535,7 +558,7 @@ app.get('/api/products', (req: Request, res: Response) => {
   res.json({
     count: results.length,
     total: db.products.length,
-    products: results,
+    products: admin ? results : results.map(({ costPrice, sourceDescription, ...product }) => product),
   });
 });
 
@@ -544,7 +567,10 @@ app.get('/api/products/:slugOrId', (req: Request, res: Response) => {
   const { slugOrId } = req.params;
   const product = db.products.find((p) => p.slug === slugOrId || p.id === slugOrId);
 
-  if (!product) {
+  const token = getSessionToken(req);
+  const session = token && verifySessionToken(token, db.siteSettings.adminTokenVersion || 1);
+  const admin = Boolean(session && db.admins.some(user => user.id === session.sub));
+  if (!product || (!admin && (product.status !== 'published' || product.visible === false))) {
     return res.status(404).json({ error: 'Product not found' });
   }
 
@@ -552,7 +578,8 @@ app.get('/api/products/:slugOrId', (req: Request, res: Response) => {
     .filter((p) => p.id !== product.id && p.categoryId === product.categoryId && p.status === 'published')
     .slice(0, 4);
 
-  res.json({ product, related });
+  const publicProduct = ({ costPrice, sourceDescription, ...value }: Product) => value;
+  res.json({ product: admin ? product : publicProduct(product), related: admin ? related : related.filter(p => p.visible !== false).map(publicProduct) });
 });
 
 app.post('/api/admin/products', (req: Request, res: Response) => {
@@ -1101,13 +1128,20 @@ app.post('/api/orders', ordersRateLimiter, async (req: Request, res: Response) =
   }
 
   const { customer, items, paymentMethod, discountCode } = parseResult.data;
+  const rawRequestKey = req.get('Idempotency-Key');
+  if (rawRequestKey && !/^[a-zA-Z0-9-]{16,80}$/.test(rawRequestKey)) return res.status(400).json({ error: 'Invalid checkout request key.' });
+  const checkoutRequestKey = rawRequestKey ? crypto.createHash('sha256').update(rawRequestKey + JSON.stringify(parseResult.data)).digest('hex') : undefined;
+  if (paymentMethod === 'online_ready' && !onlinePaymentsEnabled()) return res.status(503).json({ error: 'Online payment is unavailable. Please choose Cash on Delivery.' });
 
   try {
-    const createdOrder = await withDatabaseLock(async (db: DatabaseSchema) => {
+    const createdOrder = await withDatabaseLock((db: DatabaseSchema) => {
+      const retry = checkoutRequestKey && db.orders.find(order => order.checkoutRequestKey === checkoutRequestKey);
+      if (retry) return retry;
+      expireUnpaidReservations(db);
       // 1. Verify existence and inventory for all items
       for (const item of items) {
         const product = db.products.find((p) => p.id === item.productId);
-        if (!product || product.status !== 'published') {
+        if (!product || product.status !== 'published' || product.visible === false) {
           throw new Error(`Product "${item.productId}" is not available.`);
         }
         if (product.trackInventory && !product.allowBackorders) {
@@ -1176,6 +1210,7 @@ app.post('/api/orders', ordersRateLimiter, async (req: Request, res: Response) =
           discount = Math.min(subtotal, foundDisc.discountValue);
         }
 
+        discount = Math.max(0, Math.min(subtotal, discount));
         foundDisc.usageCount = (foundDisc.usageCount || 0) + 1;
         appliedCode = foundDisc.code;
       }
@@ -1213,7 +1248,7 @@ app.post('/api/orders', ordersRateLimiter, async (req: Request, res: Response) =
       const igst = isDelhiIntraState ? 0 : totalTax;
 
       const dateStr = getIndiaOrderDateKey();
-      const orderNumber = Math.floor(1000 + Math.random() * 9000);
+      const orderNumber = crypto.randomBytes(8).toString('hex').toUpperCase();
       const orderId = `ORD-${dateStr}-${orderNumber}`;
 
       const initialStatus: OrderStatus = 'New';
@@ -1226,6 +1261,7 @@ app.post('/api/orders', ordersRateLimiter, async (req: Request, res: Response) =
 
       const newOrder: Order = {
         id: orderId,
+        checkoutRequestKey,
         customerName: customer.name,
         phone: customer.phone,
         email: customer.email || undefined,
@@ -1309,7 +1345,7 @@ app.post('/api/orders/:id/switch-to-cod', paymentRateLimiter, async (req: Reques
   const rawEmail = ((req.body.email || '') as string).trim().toLowerCase();
 
   try {
-    const updatedOrder = await withDatabaseLock(async (db: DatabaseSchema) => {
+    const updatedOrder = await withDatabaseLock((db: DatabaseSchema) => {
       const order = db.orders.find((o) => o.id === id);
       if (!order) throw new Error('Order not found');
 
@@ -1320,9 +1356,13 @@ app.post('/api/orders/:id/switch-to-cod', paymentRateLimiter, async (req: Reques
       if (!phoneMatch && !emailMatch) {
         throw new Error('Identity verification failed');
       }
+      if (order.razorpayOrderId || order.paymentIntentState) throw new Error('A gateway payment attempt exists. Reconcile it before changing payment method.');
 
       if (order.paymentStatus === 'paid') {
         throw new Error('Order is already paid and cannot be switched to COD.');
+      }
+      if (order.stockRestored || ['Cancelled', 'Refunded', 'Returned', 'Delivered'].includes(order.orderStatus)) {
+        throw new Error('This order cannot be switched to COD. Please place a new order.');
       }
       if (order.grandTotal > 5000) {
         throw new Error('Order amount exceeds maximum COD limit of ₹5,000.');
@@ -1349,7 +1389,7 @@ app.post('/api/orders/:id/switch-to-cod', paymentRateLimiter, async (req: Reques
 // 5.1 ONLINE PAYMENTS API (REAL RAZORPAY INTEGRATION)
 // ----------------------------------------------------
 app.post('/api/payments/create-intent', paymentRateLimiter, async (req: Request, res: Response) => {
-  if (process.env.PREVIEW_MODE === 'true') {
+  if (!onlinePaymentsEnabled()) {
     return res.status(503).json({ error: 'Online payments are disabled in this preview. Please use Cash on Delivery to test checkout.' });
   }
 
@@ -1377,8 +1417,20 @@ app.post('/api/payments/create-intent', paymentRateLimiter, async (req: Request,
   }
 
   try {
-    const amountPaise = Math.round(order.grandTotal * 100);
+    const reservation = await withDatabaseLock((lockedDb: DatabaseSchema) => {
+      expireUnpaidReservations(lockedDb);
+      const active = lockedDb.orders.find(item => item.id === orderId)!;
+      if (active.stockRestored || active.paymentMethod !== 'online_ready' || ['Cancelled', 'Returned', 'Refunded', 'Delivered'].includes(active.orderStatus)) {
+        throw new Error('This order cannot accept an online payment.');
+      }
+      if (active.razorpayOrderId) return { existingId: active.razorpayOrderId, amount: Math.round(active.grandTotal * 100) };
+      if (active.paymentIntentState === 'creating' || active.paymentIntentState === 'reconcile') throw new Error('Payment creation requires reconciliation before retrying.');
+      active.paymentIntentState = 'creating';
+      return { existingId: undefined, amount: Math.round(active.grandTotal * 100) };
+    });
+    const amountPaise = reservation.amount;
     const rpConfig = getRazorpayConfig();
+    if (reservation.existingId) return res.json({ success: true, orderId: reservation.existingId, internalOrderId: order.id, amount: amountPaise, currency: 'INR', keyId: rpConfig.keyId, sandbox: rpConfig.mode === 'test' });
 
     const rpOrder = await createRazorpayOrder({
       amountPaise,
@@ -1392,10 +1444,12 @@ app.post('/api/payments/create-intent', paymentRateLimiter, async (req: Request,
 
     await withDatabaseLock((lockedDb: DatabaseSchema) => {
       const activeOrder = lockedDb.orders.find((o) => o.id === order.id);
-      if (activeOrder) {
+      if (activeOrder && !activeOrder.stockRestored && activeOrder.paymentMethod === 'online_ready' && activeOrder.paymentStatus !== 'paid') {
+        if (rpOrder.amount !== amountPaise || rpOrder.currency !== 'INR' || !rpOrder.id) throw new Error('Gateway order mismatch.');
         activeOrder.razorpayOrderId = rpOrder.id;
+        activeOrder.paymentIntentState = 'ready';
         activeOrder.updatedAt = new Date().toISOString();
-      }
+      } else throw new Error('Order changed while the payment was being created.');
     });
 
     res.json({
@@ -1409,7 +1463,7 @@ app.post('/api/payments/create-intent', paymentRateLimiter, async (req: Request,
     });
   } catch (err: any) {
     console.error('Failed to create Razorpay Order:', err);
-    res.status(500).json({ error: 'Failed to initialize payment gateway: ' + err.message });
+    res.status(503).json({ error: 'Online payment is temporarily unavailable. Please try again or use Cash on Delivery.' });
   }
 });
 
@@ -1422,7 +1476,11 @@ app.post('/api/payments/verify', paymentRateLimiter, async (req: Request, res: R
   const { orderId, razorpay_order_id, razorpay_payment_id, razorpay_signature, phone, email } = parseResult.data;
 
   try {
-    const verifiedOrder = await withDatabaseLock(async (db: DatabaseSchema) => {
+    if (!onlinePaymentsEnabled() || !verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature)) {
+      throw new Error('Online payment verification is unavailable or the signature is invalid.');
+    }
+    const gatewayPayment = await fetchRazorpayPayment(razorpay_payment_id);
+    const verifiedOrder = await withDatabaseLock((db: DatabaseSchema) => {
       const order = db.orders.find((o) => o.id === orderId);
       if (!order) {
         throw new Error('Order not found');
@@ -1437,6 +1495,9 @@ app.post('/api/payments/verify', paymentRateLimiter, async (req: Request, res: R
       // Idempotency: return early if already verified
       if (order.paymentStatus === 'paid') {
         return { order, alreadyPaid: true };
+      }
+      if (order.stockRestored || ['Cancelled', 'Refunded', 'Returned'].includes(order.orderStatus)) {
+        throw new Error('This order requires manual payment reconciliation.');
       }
 
       // Anti-replay: verify this payment ID hasn't been credited to another order
@@ -1462,12 +1523,13 @@ app.post('/api/payments/verify', paymentRateLimiter, async (req: Request, res: R
       // 2. Fetch payment details from Razorpay where credentials configured
       const rpConfig = getRazorpayConfig();
       if (rpConfig.keyId && rpConfig.keySecret && !rpConfig.keyId.startsWith('mock_')) {
-        const paymentData = await fetchRazorpayPayment(razorpay_payment_id);
-        if (paymentData.order_id && paymentData.order_id !== razorpay_order_id) {
+        const paymentData = gatewayPayment;
+        if (paymentData.order_id !== razorpay_order_id) {
           throw new Error('Payment does not correspond to the requested Razorpay order.');
         }
         const expectedPaise = Math.round(order.grandTotal * 100);
-        if (paymentData.amount && paymentData.amount !== expectedPaise) {
+        if (paymentData.amount !== expectedPaise || paymentData.currency !== 'INR' ||
+            paymentData.status !== 'captured' || !paymentData.captured) {
           throw new Error(`Payment amount mismatch. Expected ₹${order.grandTotal}, received ${paymentData.amount / 100}`);
         }
       }
@@ -1522,13 +1584,14 @@ app.post('/api/webhooks/payment', async (req: Request, res: Response) => {
   }
 
   const event = req.body;
-  const eventId = (req.headers['x-razorpay-event-id'] as string) || event.id || `evt_${Date.now()}`;
+  const eventId = (req.headers['x-razorpay-event-id'] as string) || event.id ||
+    crypto.createHash('sha256').update(rawBody).digest('hex');
 
   try {
-    await withDatabaseLock((db: DatabaseSchema) => {
+    const alreadyProcessed = await withDatabaseLock((db: DatabaseSchema) => {
       if (!db.processedWebhookKeys) db.processedWebhookKeys = [];
       if (db.processedWebhookKeys.includes(eventId)) {
-        return; // Idempotent: already processed
+        return true;
       }
 
       const paymentEntity = event.payload?.payment?.entity;
@@ -1538,7 +1601,18 @@ app.post('/api/webhooks/payment', async (req: Request, res: Response) => {
       if (orderId) {
         const order = db.orders.find((o) => o.id === orderId);
         if (order) {
+          if (paymentEntity?.order_id !== order.razorpayOrderId || !paymentId ||
+              order.paymentMethod !== 'online_ready' ||
+              paymentEntity?.currency !== 'INR' ||
+              paymentEntity?.amount !== Math.round(order.grandTotal * 100)) {
+            throw new Error('Webhook payment does not match the stored order.');
+          }
           if (event.event === 'payment.captured' && order.paymentStatus !== 'paid') {
+            if (paymentEntity.status !== 'captured' || !paymentEntity.captured ||
+                order.stockRestored || ['Cancelled', 'Refunded'].includes(order.orderStatus) ||
+                db.processedPaymentIds?.includes(paymentId)) {
+              throw new Error('Payment cannot confirm this order automatically.');
+            }
             order.paymentStatus = 'paid';
             order.paymentId = paymentId;
             order.orderStatus = 'Confirmed';
@@ -1574,10 +1648,10 @@ app.post('/api/webhooks/payment', async (req: Request, res: Response) => {
       }
 
       db.processedWebhookKeys.push(eventId);
+      return false;
     });
 
-    const db = getDatabase();
-    if (db.processedWebhookKeys && db.processedWebhookKeys.includes(eventId)) {
+    if (alreadyProcessed) {
       return res.status(200).json({ received: true, status: 'already_processed' });
     }
 
@@ -1609,6 +1683,21 @@ app.patch('/api/admin/orders/:id', (req: Request, res: Response) => {
     dispatchDate,
     currentLocation,
   } = req.body;
+
+  const validStatuses = ['New', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered', 'Cancelled', 'Returned', 'Payment Failed', 'Refunded'];
+  if (orderStatus && !validStatuses.includes(orderStatus)) return res.status(400).json({ error: 'Invalid order status.' });
+  const transitions: Record<string, string[]> = { New: ['Confirmed', 'Processing', 'Cancelled', 'Payment Failed'], Confirmed: ['Processing', 'Packed', 'Cancelled'], Processing: ['Packed', 'Cancelled'], Packed: ['Shipped', 'Cancelled'], Shipped: ['Delivered', 'Returned'], Delivered: ['Returned'], Cancelled: [], Returned: [], Refunded: [], 'Payment Failed': ['Cancelled'] };
+  if (orderStatus && orderStatus !== order.orderStatus && !transitions[order.orderStatus]?.includes(orderStatus)) return res.status(400).json({ error: `Cannot move an order from ${order.orderStatus} to ${orderStatus}.` });
+  if (paymentStatus && !['pending_cod', 'manual_verification', 'pending_online', 'paid', 'failed', 'refunded'].includes(paymentStatus)) return res.status(400).json({ error: 'Invalid payment status.' });
+  if (paymentStatus === 'refunded' || orderStatus === 'Refunded') return res.status(400).json({ error: 'Use the verified refund flow to record a refund.' });
+  if (paymentStatus && ['paid', 'refunded'].includes(order.paymentStatus) && paymentStatus !== order.paymentStatus) return res.status(400).json({ error: 'Completed payments require gateway reconciliation; they cannot be overwritten manually.' });
+  if (paymentStatus === 'paid' && order.paymentMethod === 'online_ready' && order.paymentStatus !== 'paid') return res.status(400).json({ error: 'Online payments must be verified by the payment gateway.' });
+  if (order.stockRestored && orderStatus && !['Cancelled', 'Returned', 'Payment Failed'].includes(orderStatus)) return res.status(400).json({ error: 'Released inventory cannot be reopened automatically. Create a new order after checking stock.' });
+  if (order.paymentMethod === 'online_ready' && order.paymentStatus !== 'paid' && orderStatus && ['Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered'].includes(orderStatus)) return res.status(400).json({ error: 'Online payment must be verified before fulfilment.' });
+  for (const value of [trackingNumber, courierPartner, courierTrackingUrl, estimatedDeliveryDate, dispatchDate, currentLocation, note]) {
+    if (value !== undefined && (typeof value !== 'string' || value.length > 2000)) return res.status(400).json({ error: 'Invalid tracking details.' });
+  }
+  if (courierTrackingUrl && !/^https:\/\//i.test(courierTrackingUrl)) return res.status(400).json({ error: 'Tracking links must use HTTPS.' });
 
   if (trackingNumber !== undefined) {
     order.trackingNumber = trackingNumber ? trackingNumber.trim() : undefined;
@@ -1740,20 +1829,35 @@ app.post('/api/admin/orders/:id/refund', async (req: Request, res: Response) => 
   const { amount } = req.body;
 
   try {
-    const updatedOrder = await withDatabaseLock(async (db: DatabaseSchema) => {
+    const reservation = await withDatabaseLock((db: DatabaseSchema) => {
       const order = db.orders.find((o) => o.id === id);
       if (!order) throw new Error('Order not found');
       if (order.paymentStatus !== 'paid') throw new Error('Cannot refund an unpaid order');
 
       const amountPaise = amount ? Math.round(Number(amount) * 100) : Math.round(order.grandTotal * 100);
-
-      if (order.paymentId) {
-        const rfnd = await createRazorpayRefund(order.paymentId, amountPaise);
-        order.refundId = rfnd.id;
-        order.refundAmount = rfnd.amount / 100;
-        order.refundStatus = rfnd.status;
+      if (!Number.isSafeInteger(amountPaise) || amountPaise <= 0 || amountPaise !== Math.round(order.grandTotal * 100)) {
+        throw new Error('This console supports full refunds only. Use the gateway dashboard to reconcile partial refunds.');
       }
+      if (!order.paymentId || !onlinePaymentsEnabled()) throw new Error('A captured online payment is required for a gateway refund.');
+      if (order.refundId || order.refundStatus) throw new Error('A refund request is already recorded. Reconcile its gateway status before retrying.');
+      order.refundStatus = 'requesting';
+      return { paymentId: order.paymentId, amountPaise };
+    });
+    // Persist the reservation before the external call. Ambiguous failures must be reconciled,
+    // never automatically retried: the gateway may already have moved real money.
+    const rfnd = await createRazorpayRefund(reservation.paymentId, reservation.amountPaise);
+    const updatedOrder = await withDatabaseLock((db: DatabaseSchema) => {
+      const order = db.orders.find(item => item.id === id)!;
+      if (!rfnd.id || rfnd.amount !== reservation.amountPaise) throw new Error('Gateway refund requires reconciliation.');
+      order.refundId = rfnd.id;
+      order.refundAmount = rfnd.amount / 100;
+      order.refundStatus = rfnd.status;
 
+      if (order.refundStatus !== 'processed') {
+        order.updatedAt = new Date().toISOString();
+        return order;
+      }
+      const canRestoreStock = ['New', 'Confirmed', 'Processing', 'Packed', 'Cancelled', 'Returned'].includes(order.orderStatus);
       order.paymentStatus = 'refunded';
       order.orderStatus = 'Refunded';
       order.statusHistory.push({
@@ -1763,7 +1867,7 @@ app.post('/api/admin/orders/:id/refund', async (req: Request, res: Response) => 
       });
 
       // Restore stock if not already restored
-      if (!order.stockRestored) {
+      if (canRestoreStock && !order.stockRestored) {
         for (const item of order.items) {
           const prod = db.products.find((p) => p.id === item.productId);
           if (prod && prod.trackInventory) {
@@ -1828,6 +1932,7 @@ app.post('/api/admin/inventory/adjust', (req: Request, res: Response) => {
 app.get('/api/blog', (req: Request, res: Response) => {
   const db = getDatabase();
   const { includeDrafts } = req.query;
+  if (includeDrafts === 'true' && !hasAdminSession(req)) return res.status(401).json({ error: 'Admin authentication required.' });
   let posts = [...db.blogPosts];
   if (includeDrafts !== 'true') {
     posts = posts.filter((b) => b.status === 'published');
@@ -1841,7 +1946,7 @@ app.get('/api/blog/:slugOrId', (req: Request, res: Response) => {
   const { slugOrId } = req.params;
   const post = db.blogPosts.find((b) => b.slug === slugOrId || b.id === slugOrId);
 
-  if (!post) return res.status(404).json({ error: 'Post not found' });
+  if (!post || (post.status !== 'published' && !hasAdminSession(req))) return res.status(404).json({ error: 'Post not found' });
 
   let relatedProducts: Product[] = [];
   if (post.relatedProductIds && post.relatedProductIds.length > 0) {
@@ -2028,6 +2133,7 @@ app.patch('/api/admin/founder', (req: Request, res: Response) => {
 app.get('/api/awards', (req: Request, res: Response) => {
   const db = getDatabase();
   const { all } = req.query;
+  if (all === 'true' && !hasAdminSession(req)) return res.status(401).json({ error: 'Admin authentication required.' });
   const awards = all === 'true' ? db.awards : db.awards.filter((a) => a.published && a.verified);
   res.json(awards);
 });
@@ -2096,12 +2202,15 @@ app.patch('/api/admin/social', (req: Request, res: Response) => {
 // Public site-settings: NEVER leak admin password, password hash, or token version!
 app.get('/api/site-settings', (_req: Request, res: Response) => {
   const { adminPassword, adminPasswordHash, adminTokenVersion, ...safeSettings } = getDatabase().siteSettings as any;
-  res.json(safeSettings);
+  res.json({ ...safeSettings, onlinePaymentsEnabled: onlinePaymentsEnabled() });
 });
 
 app.patch('/api/admin/site-settings', (req: Request, res: Response) => {
   const db = getDatabase();
   const { adminPassword, adminPasswordHash, adminTokenVersion, ...updates } = req.body;
+  for (const key of ['freeShippingThreshold', 'standardShippingFee']) {
+    if (updates[key] !== undefined && (typeof updates[key] !== 'number' || !Number.isFinite(updates[key]) || updates[key] < 0)) return res.status(400).json({ error: 'Shipping settings must be non-negative numbers.' });
+  }
   db.siteSettings = { ...db.siteSettings, ...updates };
   logActivity('Updated Site Settings', 'Settings', undefined, 'Modified business address or contact data');
   saveDatabase(db);
@@ -2203,6 +2312,7 @@ app.delete('/api/admin/contacts/:id', (req: Request, res: Response) => {
 app.get('/api/reviews', (req: Request, res: Response) => {
   const db = getDatabase();
   const { productId, all } = req.query;
+  if (all === 'true' && !hasAdminSession(req)) return res.status(401).json({ error: 'Admin authentication required.' });
   let reviews = [...db.reviews];
   if (all !== 'true') {
     reviews = reviews.filter((r) => r.status === 'approved');
@@ -2221,15 +2331,17 @@ app.post('/api/reviews', reviewsRateLimiter, (req: Request, res: Response) => {
 
   const { productId, productName, customerName, rating, reviewText } = parseResult.data;
   const db = getDatabase();
+  const reviewedProduct = db.products.find(product => product.id === productId && product.status === 'published' && product.visible !== false);
+  if (!reviewedProduct) return res.status(400).json({ error: 'Select a published product to review.' });
 
   const newReview: Review = {
     id: `rev-${Date.now()}`,
     productId,
-    productName: productName ? sanitizeString(productName) : 'GlowWithSH Product',
+    productName: reviewedProduct.name,
     customerName: sanitizeString(customerName),
     rating,
     reviewText: sanitizeString(reviewText),
-    verifiedPurchase: true,
+    verifiedPurchase: false,
     status: 'pending', // Requires admin moderation
     createdAt: new Date().toISOString(),
   };
@@ -2307,6 +2419,7 @@ app.get('/api/discounts/validate/:code', (req: Request, res: Response) => {
     }
   }
 
+  discountAmount = Math.max(0, Math.min(subtotal, discountAmount));
   res.json({
     valid: true,
     code: discount.code,
@@ -2386,6 +2499,7 @@ app.post('/api/admin/discounts', (req: Request, res: Response) => {
 
   const data = parseResult.data;
   const db = getDatabase();
+  if (db.discounts.some(discount => discount.code.toUpperCase() === data.code)) return res.status(409).json({ error: 'This promo code already exists.' });
 
   const newDisc = {
     id: `disc-${Date.now()}`,
@@ -2393,6 +2507,7 @@ app.post('/api/admin/discounts', (req: Request, res: Response) => {
     discountType: data.discountType,
     discountValue: data.discountValue,
     minSpend: data.minSpend,
+    maxDiscount: data.maxDiscount,
     usageLimit: data.usageLimit,
     usageCount: 0,
     startDate: data.startDate,
@@ -2413,11 +2528,10 @@ app.patch('/api/admin/discounts/:id', (req: Request, res: Response) => {
   if (index === -1) return res.status(404).json({ error: 'Discount code not found' });
 
   const existing = db.discounts[index];
-  const updated = {
-    ...existing,
-    ...req.body,
-    code: req.body.code ? req.body.code.trim().toUpperCase() : existing.code,
-  };
+  const parsed = discountMutationSchema.safeParse({ ...existing, ...req.body });
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid discount.' });
+  if (db.discounts.some(discount => discount.id !== existing.id && discount.code.toUpperCase() === parsed.data.code)) return res.status(409).json({ error: 'This promo code already exists.' });
+  const updated = { ...existing, ...parsed.data };
   db.discounts[index] = updated;
   logActivity('Updated Discount', 'Discounts', id, `Promo code ${updated.code} updated`);
   saveDatabase(db);
@@ -2672,79 +2786,21 @@ Sitemap: https://www.glowwithsh.com/sitemap.xml
 });
 
 app.get('/sitemap.xml', (_req: Request, res: Response) => {
-  const db = getDatabase();
-  const domain = process.env.APP_URL || 'https://www.glowwithsh.com';
-  const now = new Date().toISOString().split('T')[0];
-
-  const staticPages = [
-    { url: '/', priority: '1.0', changefreq: 'daily' },
-    { url: '/shop', priority: '0.9', changefreq: 'daily' },
-    { url: '/about', priority: '0.7', changefreq: 'monthly' },
-    { url: '/founder', priority: '0.8', changefreq: 'monthly' },
-    { url: '/awards', priority: '0.7', changefreq: 'monthly' },
-    { url: '/journal', priority: '0.8', changefreq: 'weekly' },
-    { url: '/contact', priority: '0.6', changefreq: 'monthly' },
-    { url: '/policies/shipping', priority: '0.4', changefreq: 'yearly' },
-    { url: '/policies/refunds', priority: '0.4', changefreq: 'yearly' },
-    { url: '/policies/privacy', priority: '0.4', changefreq: 'yearly' },
-    { url: '/policies/terms', priority: '0.4', changefreq: 'yearly' },
-  ];
-
-  const categoryUrls = db.categories.map((c) => ({
-    url: `/shop/category/${c.slug}`,
-    priority: '0.8',
-    changefreq: 'weekly',
-  }));
-
-  const productUrls = db.products
-    .filter((p) => p.status === 'published' && p.visible !== false)
-    .map((p) => ({
-      url: `/product/${p.slug}`,
-      priority: '0.9',
-      changefreq: 'weekly',
-    }));
-
-  const blogUrls = db.blogPosts
-    .filter((b) => b.status === 'published')
-    .map((b) => ({
-      url: `/journal/${b.slug}`,
-      priority: '0.7',
-      changefreq: 'monthly',
-    }));
-
-  const pageUrls = (db.pages || [])
-    .filter((page) => page.status === 'published')
-    .map((page) => ({
-      url: `/${page.slug}`,
-      priority: '0.6',
-      changefreq: 'monthly',
-    }));
-
-  const allUrls = [...staticPages, ...categoryUrls, ...productUrls, ...blogUrls, ...pageUrls];
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${allUrls
-  .map(
-    (u) => `  <url>
-    <loc>${domain}${u.url}</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>${u.changefreq}</changefreq>
-    <priority>${u.priority}</priority>
-  </url>`
-  )
-  .join('\n')}
-</urlset>`;
-
-  res.type('application/xml');
-  res.send(xml);
+  res.type('application/xml').send(sitemapXml(getDatabase()));
 });
-
 // ----------------------------------------------------
 // 15. STATIC ASSET SERVING & SPA ROUTER
 // ----------------------------------------------------
 async function start() {
   const publicPath = path.join(process.cwd(), 'public');
+  app.get('/index.html', (_req: Request, res: Response) => res.redirect(301, '/'));
+  const assetAliases: Record<string, string> = {
+    '/videos/hero_optimized.mp4': '/videos/hero_glowwithsh_v2.mp4',
+    '/videos/hero_mobile.mp4': '/videos/hero_mobile_v2.mp4',
+    '/images/hero-poster.jpg': '/images/hero_poster_v2.jpg',
+    '/images/hero-poster.webp': '/images/hero_poster_v2.webp',
+  };
+  app.get(Object.keys(assetAliases), (req: Request, res: Response) => res.redirect(301, assetAliases[req.path]));
 
   const mediaOptions = {
     setHeaders: (res: Response) => {
@@ -2765,7 +2821,7 @@ async function start() {
       res.setHeader('Cache-Control', 'public, max-age=86400');
     },
   }));
-  app.use(express.static(publicPath, { maxAge: '1d' }));
+  app.use(express.static(publicPath, { maxAge: '1d', index: false }));
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -2786,13 +2842,28 @@ async function start() {
       immutable: true,
     }));
 
-    app.use(express.static(distPath, { maxAge: '1h' }));
+    app.use(express.static(distPath, { maxAge: '1h', index: false }));
 
-    app.get('*', (_req: Request, res: Response) => {
+    const template = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
+    app.get('*', (req: Request, res: Response) => {
+      if (req.path.startsWith('/api/') || /\.[a-z0-9]+$/i.test(req.path)) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+      const aliases: Record<string, string> = { '/home': '/', '/blog': '/journal', '/track': '/track-order', '/order-tracking': '/track-order', '/skin-quiz': '/quiz', '/consultation': '/quiz', '/saved': '/wishlist' };
+      const cleanPath = req.path.replace(/\/+$/, '') || '/';
+      if (aliases[cleanPath]) return res.redirect(301, aliases[cleanPath]);
+      if (cleanPath !== req.path) return res.redirect(301, `${cleanPath}${req.url.slice(req.path.length)}`);
+      const page = renderSeoHtml(template, cleanPath, getDatabase());
       res.setHeader('Cache-Control', 'no-cache, must-revalidate');
-      res.sendFile(path.join(distPath, 'index.html'));
+      res.setHeader('X-Robots-Tag', page.index ? 'index, follow' : 'noindex, follow');
+      res.status(page.status).type('html').send(page.html);
     });
   }
+
+  app.use((error: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = error?.type === 'entity.too.large' ? 413 : error instanceof SyntaxError ? 400 : 500;
+    res.status(status).json({ success: false, error: status === 413 ? 'The uploaded request is too large.' : status === 400 ? 'Invalid request body.' : 'Unable to complete the request. Please try again.' });
+  });
 
   const storefrontServer = app.listen(STOREFRONT_PORT, '0.0.0.0', () => {
     console.log(`🛍️  GlowWithSH Storefront running on http://0.0.0.0:${STOREFRONT_PORT} (Main Domain)`);

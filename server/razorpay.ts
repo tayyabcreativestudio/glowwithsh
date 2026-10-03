@@ -32,7 +32,7 @@ export function assertRazorpayConfiguration(): void {
   const cfg = getRazorpayConfig();
   const isPreviewMode = process.env.PREVIEW_MODE === 'true';
 
-  if (process.env.NODE_ENV === 'production' && !isPreviewMode) {
+  if (process.env.NODE_ENV === 'production' && !isPreviewMode && onlinePaymentsEnabled()) {
     if (!cfg.keyId || !cfg.keySecret) {
       throw new Error('FATAL: Razorpay live API credentials (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET) are required in production.');
     }
@@ -48,12 +48,21 @@ export function assertRazorpayConfiguration(): void {
   }
 }
 
+export function onlinePaymentsEnabled(): boolean {
+  const cfg = getRazorpayConfig();
+  return process.env.PREVIEW_MODE !== 'true' && process.env.ONLINE_PAYMENTS_ENABLED !== 'false' &&
+    Boolean(cfg.keyId && cfg.keySecret) && !cfg.keyId.startsWith('mock_') && cfg.keySecret !== 'mocksecret';
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const cfg = getRazorpayConfig();
   assertRazorpayConfiguration();
 
   // If in development/testing without real keys or using a mock API base, provide deterministic mock behavior
   if (!cfg.keyId || !cfg.keySecret || cfg.keyId.startsWith('mock_') || cfg.keySecret === 'mocksecret') {
+    if (process.env.NODE_ENV !== 'test' || process.env.RAZORPAY_MOCK !== 'true') {
+      throw new Error('Online payments are not configured.');
+    }
     if (path === '/orders' && method === 'POST') {
       const orderBody = body as { amount: number; currency: string; receipt: string };
       return {
@@ -99,6 +108,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
   });
 
   const text = await response.text();
@@ -167,7 +177,7 @@ export function verifyPaymentSignature(
   signature: string,
   secret = getRazorpayConfig().keySecret
 ): boolean {
-  if (!signature || !orderId || !paymentId) return false;
+  if (!secret || !signature || !orderId || !paymentId) return false;
   const expected = createPaymentSignature(orderId, paymentId, secret);
   const left = Buffer.from(expected, 'utf8');
   const right = Buffer.from(signature, 'utf8');

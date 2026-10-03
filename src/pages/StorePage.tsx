@@ -1,7 +1,6 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { StorePage as StorePageRecord } from '../types';
-import { usePageSeo } from '../utils/seo';
 
 interface StorePageProps { page: StorePageRecord; onNavigateToShop: () => void; }
 
@@ -9,7 +8,6 @@ export const StorePage: React.FC<StorePageProps> = ({ page, onNavigateToShop }) 
   const title = page.seoTitle || `${page.title} | GlowWithSH`;
   const description = page.seoDescription || page.content.slice(0, 155);
   const canonical = typeof window === 'undefined' ? `/${page.slug}` : `${window.location.origin}/${page.slug}`;
-  usePageSeo({ title, description, canonical, image: page.coverImage });
 
   return <article className="min-h-[65vh] bg-[#F8F5FF] px-4 py-12 text-[#1E1630] sm:py-20">
     <div className="mx-auto max-w-4xl">

@@ -72,13 +72,14 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenS
           </div>
 
           {/* Center: Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-7 lg:space-x-9" aria-label="Main Navigation">
+          <nav className="hidden xl:flex items-center space-x-5" aria-label="Main Navigation">
             {navLinks.map((item) => {
               const isActive = currentPath === item.path;
               return (
-                <button
+                <a
                   key={item.path}
-                  onClick={() => handleLinkClick(item.path)}
+                  href={item.path}
+                  onClick={event => { event.preventDefault(); handleLinkClick(item.path); }}
                   className={`text-[13px] tracking-[0.08em] uppercase font-sans font-medium transition-colors cursor-pointer relative py-1 ${
                     isActive
                       ? 'text-[#7C3AED] font-semibold'
@@ -89,7 +90,7 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenS
                   {isActive && (
                     <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] rounded-full" />
                   )}
-                </button>
+                </a>
               );
             })}
           {pages.length > 0 && <div className="group relative">
@@ -150,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenS
             <button
               id="mobile-menu-toggle-btn"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 text-[#1E1630] hover:text-[#7C3AED] transition-colors cursor-pointer"
+              className="xl:hidden p-2 text-[#1E1630] hover:text-[#7C3AED] transition-colors cursor-pointer"
               aria-label="Toggle mobile menu"
             >
               {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -163,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate, onOpenS
       {isMobileMenuOpen && (
         <div
           id="mobile-nav-drawer"
-          className="fixed inset-0 z-50 flex flex-col justify-between p-6 md:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex flex-col justify-between p-6 xl:hidden animate-in fade-in duration-200"
           style={{
             background: 'rgba(248, 245, 255, 0.95)',
             backdropFilter: 'blur(24px)',

@@ -5,6 +5,7 @@ import { Badge } from '../common/Badge';
 import { formatINR } from '../../utils/format';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { analyticsItem, trackCommerce } from '../../utils/analytics';
 
 interface ProductCardProps {
   product: Product;
@@ -17,15 +18,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
   const isWishlisted = isInWishlist(product.id);
   const [isHovered, setIsHovered] = useState(false);
   const [addedEffect, setAddedEffect] = useState(false);
+  const select = () => { trackCommerce('select_item', [analyticsItem(product)]); onClick(product.slug); };
 
   const hasSecondaryImage = product.mediaGallery && product.mediaGallery.length > 1;
   const secondaryImage = hasSecondaryImage ? product.mediaGallery[1] : product.primaryImage;
+  const illustrative = (isHovered && hasSecondaryImage ? secondaryImage : product.primaryImage).includes('images.unsplash.com');
 
   // Determine badge
   let badgeText = '';
-  if (product.bestSeller) badgeText = 'BESTSELLER';
-  else if (product.newProduct) badgeText = 'NEW';
-  else if (product.limitedEdition) badgeText = 'LIMITED';
+  if (product.bestSeller || product.newProduct || product.limitedEdition) badgeText = 'FEATURED';
   else if (product.compareAtPrice && product.compareAtPrice > product.price) badgeText = 'SALE';
   else if (product.featured) badgeText = 'FEATURED';
 
@@ -36,7 +37,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (product.stockQuantity <= 0 && !product.allowBackorders) return;
+    if (product.trackInventory && product.stockQuantity <= 0 && !product.allowBackorders) return;
     addToCart(product, 1);
     setAddedEffect(true);
     setTimeout(() => setAddedEffect(false), 1200);
@@ -53,7 +54,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
   return (
     <div
       id={`product-card-${product.id}`}
-      onClick={() => onClick(product.slug)}
+      onClick={select}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className="group flex flex-col justify-between glass-card glass-card-hover rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer"
@@ -62,10 +63,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
       <div className="relative w-full aspect-4/5 overflow-hidden bg-[#EDE8F5]/40">
         <img
           src={isHovered && hasSecondaryImage ? secondaryImage : product.primaryImage}
-          alt={product.name}
+          alt={illustrative ? `Illustrative stock photo for ${product.name}` : product.name}
           loading="lazy"
           className="w-full h-full object-cover object-center group-hover:scale-104 transition-transform duration-700 ease-out"
         />
+        {illustrative && <span className="absolute bottom-2 left-2 rounded bg-white/95 px-2 py-1 text-[10px] text-[#1E1630]">Illustrative stock photo</span>}
 
         {/* Top Badges & Wishlist */}
         <div className="absolute top-3 left-3 right-3 flex items-start justify-between pointer-events-none">
@@ -137,7 +139,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
             {product.categoryName}
           </span>
           <h3 className="font-serif text-base sm:text-lg text-[#1E1630] group-hover:text-[#7C3AED] transition-colors font-medium leading-snug line-clamp-2 mt-0.5">
-            {product.name}
+            <a href={`/product/${product.slug}`} onClick={event => { event.preventDefault(); event.stopPropagation(); select(); }}>{product.name}</a>
           </h3>
           <p className="text-xs font-sans text-[#6B5F82] line-clamp-1 mt-1">
             {product.shortDescription}

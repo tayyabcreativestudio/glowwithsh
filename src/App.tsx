@@ -1,3 +1,4 @@
+import { applyPageSeo } from './utils/seo';
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { CartProvider, useCart } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
@@ -306,13 +307,13 @@ export const AppContent: React.FC = () => {
         settingsData,
         pagesData,
       ] = await Promise.all([
-        api.getProducts({ includeDrafts: true }),
+        api.getProducts({ includeDrafts: Boolean(adminToken) }),
         api.getCategories(),
         api.getHomepageCMS(),
         api.getFounderCMS(),
-        api.getAwards(true),
+        api.getAwards(Boolean(adminToken)),
         api.getSocialSettings(),
-        api.getBlogPosts(true),
+        api.getBlogPosts(Boolean(adminToken)),
         api.getSiteSettings(),
         api.getPages(),
       ]);
@@ -331,7 +332,7 @@ export const AppContent: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [adminToken]);
 
   // Fetch admin operational records if authenticated
   const refreshAdminData = useCallback(async () => {
@@ -359,77 +360,15 @@ export const AppContent: React.FC = () => {
     api.adminCheckAuth().then(() => setAdminToken('cookie')).catch(() => setAdminToken(null));
   }, []);
 
-  // Synchronize document title with current storefront or admin view
+  // One metadata source keeps initial HTML and client-side navigation consistent.
   useEffect(() => {
-    let pageTitle = 'GlowWithSH — Luxury Skincare & Beauty Rituals by Shagufi Hussain';
-    switch (route.view) {
-      case 'home':
-        pageTitle = 'GlowWithSH — Luxury Skincare & Beauty Rituals by Shagufi Hussain';
-        break;
-      case 'shop':
-        pageTitle = route.categoryId
-          ? `${route.categoryId.charAt(0).toUpperCase() + route.categoryId.slice(1)} Collection | GlowWithSH`
-          : 'The Formulations Catalog | GlowWithSH';
-        break;
-      case 'product': {
-        const prod = products.find((p) => p.slug === route.slug);
-        pageTitle = prod ? `${prod.name} | GlowWithSH Atelier` : 'Formulation Details | GlowWithSH';
-        break;
-      }
-      case 'cart':
-        pageTitle = 'Your Ritual Bag (Cart) | GlowWithSH';
-        break;
-      case 'checkout':
-        pageTitle = 'Secure Atelier Checkout | GlowWithSH';
-        break;
-      case 'order-confirmation':
-        pageTitle = 'Order Confirmed | GlowWithSH';
-        break;
-      case 'track-order':
-        pageTitle = 'Live Shipment & Order Tracking | GlowWithSH';
-        break;
-      case 'quiz':
-        pageTitle = 'Find Your Glow Ritual — Skin Quiz | GlowWithSH';
-        break;
-      case 'wishlist':
-        pageTitle = 'Your Saved Rituals & Wishlist | GlowWithSH';
-        break;
-      case 'about':
-        pageTitle = 'Our Heritage & Philosophy | GlowWithSH';
-        break;
-      case 'founder':
-        pageTitle = 'Shagufi Hussain — Founder & Formulator | GlowWithSH';
-        break;
-      case 'awards':
-        pageTitle = 'Verified Accolades & Recognition | GlowWithSH';
-        break;
-      case 'journal':
-        pageTitle = 'The Atelier Journal & Ritual Guides | GlowWithSH';
-        break;
-      case 'article': {
-        const post = posts.find((p) => p.slug === route.slug);
-        pageTitle = post ? `${post.title} | GlowWithSH Journal` : 'Journal Article | GlowWithSH';
-        break;
-      }
-      case 'contact':
-        pageTitle = 'Concierge & Atelier Inquiries | GlowWithSH';
-        break;
-      case 'policies':
-        pageTitle = `${(route.tab || 'shipping').toUpperCase()} Policy | GlowWithSH`;
-        break;
-      case 'admin-login':
-        pageTitle = 'Atelier Admin Access | GlowWithSH';
-        break;
-      case 'admin':
-        pageTitle = `Admin Console (${(route.tab || 'dashboard').toUpperCase()}) | GlowWithSH`;
-        break;
-      case '404':
-        pageTitle = 'Page Not Found | GlowWithSH';
-        break;
-    }
-    document.title = pageTitle;
+    const controller = new AbortController();
+    fetch(`/api/seo?path=${encodeURIComponent(window.location.pathname)}`, { signal: controller.signal })
+      .then(response => response.ok ? response.json() : Promise.reject())
+      .then(metadata => applyPageSeo(metadata))
+      .catch(() => {});
+    return () => controller.abort();
   }, [route, products, posts]);
-
   useEffect(() => {
     if (adminToken) {
       refreshAdminData();

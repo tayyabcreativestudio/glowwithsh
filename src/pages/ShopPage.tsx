@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Product, Category } from '../types';
 import { ProductGrid } from '../components/storefront/ProductGrid';
 import { Search, Filter, SlidersHorizontal, ArrowUpDown, X } from 'lucide-react';
+import { analyticsItem, trackCommerce } from '../utils/analytics';
 
 interface ShopPageProps {
   products: Product[];
@@ -21,6 +22,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'name-asc' | 'newest'>('featured');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const activeCategory = categories.find(category => category.id === selectedCategory || category.slug === selectedCategory);
 
   // Synchronize when initialCategory changes (e.g. from deep-link URL or category cards)
   useEffect(() => {
@@ -86,6 +88,9 @@ export const ShopPage: React.FC<ShopPageProps> = ({
     });
   }, [products, selectedCategory, inStockOnly, searchQuery, sortBy]);
 
+  useEffect(() => {
+    trackCommerce('view_item_list', filteredProducts.map(product => analyticsItem(product)));
+  }, [filteredProducts]);
   return (
     <div id="shop-catalog-page" className="min-h-screen py-12 sm:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -95,17 +100,17 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             THE CATALOG
           </span>
           <h1 className="font-serif text-4xl sm:text-5xl text-[#1E1630] font-normal tracking-tight">
-            Shop GlowWithSH
+            {activeCategory ? activeCategory.name : 'Shop GlowWithSH'}
           </h1>
           <p className="text-sm sm:text-base font-sans text-[#6B5F82] max-w-xl mx-auto leading-relaxed">
-            Botanical purifiers, ceremonial bridal creams, and concentrated elixirs created for mindful daily self-care.
+            {activeCategory ? `Explore GlowWithSH ${activeCategory.name.toLowerCase()}. Compare product details, prices and availability to find your next skincare essential.` : 'Explore face care, creams, serums and body care. Compare product details, prices and availability, all in one place.'}
           </p>
         </div>
 
         {/* Category Pills Bar */}
         <div className="flex items-center justify-start sm:justify-center overflow-x-auto pb-4 gap-2 scrollbar-none mb-8">
-          <button
-            onClick={() => setSelectedCategory('all')}
+          <a
+            href="/shop"
             className={`px-4 py-2 rounded-full text-xs uppercase font-sans tracking-wider transition-all cursor-pointer shrink-0 ${
               selectedCategory === 'all'
                 ? 'glass-btn-primary font-semibold text-white shadow-sm'
@@ -113,16 +118,16 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             }`}
           >
             All Products ({products.filter((p) => p.status === 'published').length})
-          </button>
+          </a>
           {categories.map((cat) => {
             const count = products.filter(
               (p) => p.categoryId === cat.id && p.status === 'published'
             ).length;
             const isSelected = selectedCategory === cat.slug || selectedCategory === cat.id;
             return (
-              <button
+              <a
                 key={cat.id}
-                onClick={() => setSelectedCategory(cat.slug)}
+                href={`/shop/category/${cat.slug}`}
                 className={`px-4 py-2 rounded-full text-xs uppercase font-sans tracking-wider transition-all cursor-pointer shrink-0 ${
                   isSelected
                     ? 'glass-btn-primary font-semibold text-white shadow-sm'
@@ -130,7 +135,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                 }`}
               >
                 {cat.name} ({count})
-              </button>
+              </a>
             );
           })}
         </div>
@@ -142,6 +147,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B5F82]" />
             <input
               type="text"
+              aria-label="Search the catalog"
               placeholder="Search in catalog..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -174,6 +180,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             <div className="flex items-center gap-2">
               <ArrowUpDown size={14} className="text-[#6B5F82]" />
               <select
+                aria-label="Sort products"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="text-xs font-sans glass-surface border border-[#DDD6F3] rounded-xl px-3 py-2 text-[#1E1630] focus:outline-none focus:border-[#7C3AED] cursor-pointer"
@@ -206,6 +213,11 @@ export const ShopPage: React.FC<ShopPageProps> = ({
           products={filteredProducts}
           onSelectProduct={onSelectProduct}
         />
+        <section className="mt-12 max-w-3xl space-y-4 text-sm leading-relaxed text-[#554C68]">
+          <h2 className="font-serif text-2xl text-[#1E1630]">Choosing from {activeCategory ? activeCategory.name.toLowerCase() : 'the collection'}</h2>
+          <p>Open a product page to compare its size, price, usage directions and availability. The product grid shows current prices; checkout confirms the final total for your selection.</p>
+          <p>For questions about a particular product, <a className="underline" href="/contact">contact GlowWithSH</a> before ordering. Read our <a className="underline" href="/policies/shipping">shipping information</a> and <a className="underline" href="/policies/refunds">returns and refunds policy</a> for purchase details.</p>
+        </section>
       </div>
     </div>
   );

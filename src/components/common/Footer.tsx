@@ -80,106 +80,106 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
           {/* Quick Navigation Links */}
           <div className="lg:col-span-2 space-y-3">
-            <h4 className="text-xs uppercase tracking-[0.15em] font-sans font-semibold text-[#A78BFA]">Explore</h4>
+            <h2 className="text-xs uppercase tracking-[0.15em] font-sans font-semibold text-[#A78BFA]">Explore</h2>
             <ul className="space-y-2 text-sm font-sans text-white/70">
               <li>
-                <button onClick={() => onNavigate('/shop')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/shop" onClick={event => { event.preventDefault(); onNavigate('/shop'); }} className="hover:text-white transition-colors cursor-pointer">
                   Shop All Products
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/quiz')} className="hover:text-white transition-colors cursor-pointer text-[#A78BFA] font-medium flex items-center gap-1">
+                <a href="/quiz" onClick={event => { event.preventDefault(); onNavigate('/quiz'); }} className="hover:text-white transition-colors cursor-pointer text-[#A78BFA] font-medium flex items-center gap-1">
                   <span>✨ Skin Ritual Quiz</span>
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/wishlist')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/wishlist" onClick={event => { event.preventDefault(); onNavigate('/wishlist'); }} className="hover:text-white transition-colors cursor-pointer">
                   Saved Wishlist
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/shop?category=creams')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/shop/category/creams" onClick={event => { event.preventDefault(); onNavigate('/shop/category/creams'); }} className="hover:text-white transition-colors cursor-pointer">
                   Creams &amp; Butters
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/shop?category=serums')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/shop/category/serums" onClick={event => { event.preventDefault(); onNavigate('/shop/category/serums'); }} className="hover:text-white transition-colors cursor-pointer">
                   Serums &amp; Elixirs
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/about')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/about" onClick={event => { event.preventDefault(); onNavigate('/about'); }} className="hover:text-white transition-colors cursor-pointer">
                   Our Story
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/founder')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/founder" onClick={event => { event.preventDefault(); onNavigate('/founder'); }} className="hover:text-white transition-colors cursor-pointer">
                   Meet Shagufi
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/journal')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/journal" onClick={event => { event.preventDefault(); onNavigate('/journal'); }} className="hover:text-white transition-colors cursor-pointer">
                   Glow Journal
-                </button>
+                </a>
               </li>
             </ul>
           </div>
 
           {/* Customer Care & Policies */}
           <div className="lg:col-span-3 space-y-3">
-            <h4 className="text-xs uppercase tracking-[0.15em] font-sans font-semibold text-[#A78BFA]">Customer Care</h4>
+            <h2 className="text-xs uppercase tracking-[0.15em] font-sans font-semibold text-[#A78BFA]">Customer Care</h2>
             <ul className="space-y-2 text-sm font-sans text-white/70">
               <li>
-                <button onClick={() => onNavigate('/track-order')} className="hover:text-white transition-colors cursor-pointer text-[#A78BFA] font-medium flex items-center gap-1">
+                <a href="/track-order" onClick={event => { event.preventDefault(); onNavigate('/track-order'); }} className="hover:text-white transition-colors cursor-pointer text-[#A78BFA] font-medium flex items-center gap-1">
                   <span>🚚 Track Your Order</span>
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/contact')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/contact" onClick={event => { event.preventDefault(); onNavigate('/contact'); }} className="hover:text-white transition-colors cursor-pointer">
                   Contact &amp; Studio
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/policies/shipping')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/policies/shipping" onClick={event => { event.preventDefault(); onNavigate('/policies/shipping'); }} className="hover:text-white transition-colors cursor-pointer">
                   Shipping &amp; Delivery
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/policies/refunds')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/policies/refunds" onClick={event => { event.preventDefault(); onNavigate('/policies/refunds'); }} className="hover:text-white transition-colors cursor-pointer">
                   Refund &amp; Cancellation
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/policies/privacy')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/policies/privacy" onClick={event => { event.preventDefault(); onNavigate('/policies/privacy'); }} className="hover:text-white transition-colors cursor-pointer">
                   Privacy Policy
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/policies/terms')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/policies/terms" onClick={event => { event.preventDefault(); onNavigate('/policies/terms'); }} className="hover:text-white transition-colors cursor-pointer">
                   Terms &amp; Conditions
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/policies/disclaimer')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/policies/disclaimer" onClick={event => { event.preventDefault(); onNavigate('/policies/disclaimer'); }} className="hover:text-white transition-colors cursor-pointer">
                   Skincare Disclaimer
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/policies/contact')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/policies/contact" onClick={event => { event.preventDefault(); onNavigate('/policies/contact'); }} className="hover:text-white transition-colors cursor-pointer">
                   Seller &amp; Grievance Redressal
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('/policies/faq')} className="hover:text-white transition-colors cursor-pointer">
+                <a href="/policies/faq" onClick={event => { event.preventDefault(); onNavigate('/policies/faq'); }} className="hover:text-white transition-colors cursor-pointer">
                   Frequently Asked Questions
-                </button>
+                </a>
               </li>
             </ul>
           </div>
 
           {/* Newsletter Column */}
           <div className="lg:col-span-3 space-y-3">
-            <h4 className="text-xs uppercase tracking-[0.15em] font-sans font-semibold text-[#A78BFA]">The Ritual Letter</h4>
+            <h2 className="text-xs uppercase tracking-[0.15em] font-sans font-semibold text-[#A78BFA]">The Ritual Letter</h2>
             <p className="text-xs font-sans text-white/65 leading-relaxed">
               Receive quiet beauty reflections, early seasonal batches, and personal notes from Shagufi Hussain.
             </p>

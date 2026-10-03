@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, ArrowRight } from 'lucide-react';
 import { Product } from '../../types';
 import { formatINR } from '../../utils/format';
+import { useDialogFocus } from '../../utils/useDialogFocus';
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
 }) => {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  useDialogFocus(isOpen, 'search-overlay', onClose);
 
   useEffect(() => {
     if (isOpen) {
@@ -47,6 +49,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
   const trimmed = query.trim().toLowerCase();
   const results = trimmed
     ? products.filter((p) => {
+        if (p.status !== 'published' || p.visible === false) return false;
         return (
           p.name.toLowerCase().includes(trimmed) ||
           p.sku.toLowerCase().includes(trimmed) ||
@@ -61,6 +64,9 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
   return (
     <div
       id="search-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search products"
       className="fixed inset-0 z-50 flex flex-col justify-start items-center pt-16 px-4 animate-in fade-in duration-200"
       style={{
         background: 'rgba(30, 22, 48, 0.75)',
@@ -74,6 +80,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
           <input
             ref={inputRef}
             type="text"
+            aria-label="Search products"
             placeholder="Search skincare essentials, formulas, ingredients (e.g. rice, saffron, facewash)..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}

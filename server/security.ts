@@ -1,4 +1,15 @@
 import crypto from 'crypto';
+
+export function adminRoleAllows(role: string, url: string, method: string): boolean {
+  if (role === 'Super Admin') return true;
+  const route = url.split('?')[0].replace(/^\/api\/admin/, '');
+  if (['/auth/me', '/auth/logout'].includes(route)) return true;
+  if (route === '/auth/change-password' || route === '/reset-database' || route === '/site-settings' || route.startsWith('/activity-logs')) return false;
+  if (role === 'Manager') return true;
+  if (role === 'Editor') return /^\/(products|categories|collections|media|upload|pages|blog|awards|cms|instagram|seo)(\/|$)/.test(route);
+  if (role === 'Support') return /^\/(contacts|reviews)(\/|$)/.test(route) || (method === 'GET' && /^\/orders(\/|$)/.test(route));
+  return false;
+}
 import type { Request, Response, NextFunction } from 'express';
 
 const SESSION_COOKIE = 'gwsh_admin_session';
@@ -30,7 +41,6 @@ export function getAuthSecret(): string {
 }
 
 export function requireConfiguredAuthSecret(): void {
-  const isPreviewMode = process.env.PREVIEW_MODE === 'true';
   const secret = process.env.ADMIN_AUTH_SECRET?.trim();
   if (process.env.NODE_ENV === 'production' && (!secret || secret.length < 32)) {
     throw new Error('FATAL: ADMIN_AUTH_SECRET is required and must be at least 32 characters in production.');
@@ -47,8 +57,8 @@ export function requireConfiguredAuthSecret(): void {
   }
 
   const gstin = process.env.SITE_GSTIN?.trim().toUpperCase();
-  if (process.env.NODE_ENV === 'production' && !isPreviewMode && (!gstin || !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin))) {
-    throw new Error('FATAL: SITE_GSTIN must be a valid registered GSTIN in production.');
+  if (gstin && !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) {
+    throw new Error('FATAL: Configured SITE_GSTIN has an invalid format.');
   }
 }
 
@@ -111,7 +121,9 @@ export function verifySessionToken(
 ): { sub: string; role: string } | null {
   try {
     if (!token || typeof token !== 'string') return null;
-    const [payload, signature] = token.split('.');
+    const segments = token.split('.');
+    if (segments.length !== 2) return null;
+    const [payload, signature] = segments;
     if (!payload || !signature) return null;
 
     const expected = crypto.createHmac('sha256', getAuthSecret()).update(payload).digest();
@@ -129,7 +141,7 @@ export function verifySessionToken(
 
     if (!parsed.sub || !parsed.role || !parsed.exp) return null;
     const now = Math.floor(Date.now() / 1000);
-    if (parsed.exp < now) return null; // Expired
+    if (!Number.isFinite(parsed.exp) || parsed.exp <= now) return null; // Expired
     if (parsed.ver !== currentTokenVersion) return null; // Invalidated by password change or logout
 
     return { sub: parsed.sub, role: parsed.role };
@@ -253,7 +265,7 @@ export function csrfOriginCheck(req: Request, res: Response, next: NextFunction)
     if (!hostHeader) return next();
     
     const appOrigin = `${req.protocol}://${hostHeader}`;
-    if (requestOrigin !== appOrigin && !requestOrigin.includes('localhost') && !requestOrigin.includes('127.0.0.1')) {
+    if (requestOrigin !== appOrigin) {
       res.status(403).json({ success: false, error: 'Cross-origin request blocked.' });
       return;
     }

@@ -195,7 +195,7 @@ export const api = {
   async validateDiscount(
     code: string,
     subtotal = 0
-  ): Promise<{ code: string; discountType: string; discountValue: number; minSpend?: number }> {
+  ): Promise<{ code: string; discountType: string; discountValue: number; discountAmount: number; minSpend?: number }> {
     const clean = (code || '').trim().toUpperCase();
     if (!clean) throw new Error('Please enter a promotional code');
 
@@ -246,16 +246,23 @@ export const api = {
     paymentMethod: 'cod' | 'whatsapp' | 'online_ready';
     discountCode?: string;
   }): Promise<{ success: boolean; order: Order; whatsappUrl: string }> {
+    const encoded = new TextEncoder().encode(JSON.stringify(orderData));
+    const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encoded))).map(byte => byte.toString(16).padStart(2, '0')).join('');
+    const storageKey = `glowwithsh_checkout_${digest}`;
+    let requestKey: string = crypto.randomUUID();
+    try { requestKey = sessionStorage.getItem(storageKey) || requestKey; sessionStorage.setItem(storageKey, requestKey); } catch {}
     const res = await fetch(`${API_BASE}/orders`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': requestKey },
       body: JSON.stringify(orderData),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Failed to process order');
     }
-    return res.json();
+    const result = await res.json();
+    try { sessionStorage.removeItem(storageKey); } catch {}
+    return result;
   },
 
   async createPaymentIntent(details: {

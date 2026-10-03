@@ -10,11 +10,13 @@ export const ContactPage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) return;
     setLoading(true);
+    setError('');
     try {
       await api.submitContact({
         name,
@@ -29,8 +31,8 @@ export const ContactPage: React.FC = () => {
       setPhone('');
       setSubject('');
       setMessage('');
-    } catch (e) {
-      console.error('Failed to submit contact', e);
+    } catch (e: any) {
+      setError(e.message || 'We could not send your enquiry. Please try again or contact us by phone.');
     } finally {
       setLoading(false);
     }
@@ -48,10 +50,11 @@ export const ContactPage: React.FC = () => {
             Connect With <span className="gradient-text">GlowWithSH</span>
           </h1>
           <p className="font-sans text-base text-[#6B5F82] max-w-xl mx-auto leading-relaxed">
-            Have questions regarding skin routines, formulation textures, or existing orders? Our Delhi studio is here to assist.
+            Ask about a product, delivery or an existing order. Include your order reference when you need help with a purchase.
           </p>
         </div>
 
+        {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">{error}</p>}
         {/* Contact Split */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
           {/* Left Column: Official Contact Info */}
@@ -171,10 +174,10 @@ export const ContactPage: React.FC = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                      <label htmlFor="contactpage-field-1" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                         Full Name *
                       </label>
-                      <input
+                      <input id="contactpage-field-1"
                         type="text"
                         required
                         value={name}
@@ -184,10 +187,10 @@ export const ContactPage: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                      <label htmlFor="contactpage-field-2" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                         Email Address *
                       </label>
-                      <input
+                      <input id="contactpage-field-2"
                         type="email"
                         required
                         value={email}
@@ -200,10 +203,10 @@ export const ContactPage: React.FC = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                      <label htmlFor="contactpage-field-3" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                         Phone / WhatsApp Number
                       </label>
-                      <input
+                      <input id="contactpage-field-3"
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
@@ -212,10 +215,10 @@ export const ContactPage: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                      <label htmlFor="contactpage-field-4" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                         Inquiry Subject
                       </label>
-                      <input
+                      <input id="contactpage-field-4"
                         type="text"
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
@@ -226,10 +229,10 @@ export const ContactPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                    <label htmlFor="contactpage-field-5" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                       Message *
                     </label>
-                    <textarea
+                    <textarea id="contactpage-field-5"
                       required
                       rows={5}
                       value={message}

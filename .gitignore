@@ -22,6 +22,8 @@ data/db.json.*
 data/*.bak
 data/*.tmp*
 data/migrated_pg_dump.sql
+data/*.sqlite*
+data/*export*.json
 
 # Persistent user uploads
 public/uploads/*

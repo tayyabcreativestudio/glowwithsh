@@ -45,7 +45,9 @@ export const orderItemInputSchema = z.object({
 
 export const orderSubmissionSchema = z.object({
   customer: orderCustomerSchema,
-  items: z.array(orderItemInputSchema).min(1, 'Order must contain at least one item').max(50),
+  items: z.array(orderItemInputSchema).min(1, 'Order must contain at least one item').max(50)
+    .refine(items => new Set(items.map(item => item.productId)).size === items.length,
+      'Each product may appear only once in the cart.'),
   paymentMethod: z.enum(['cod', 'whatsapp', 'online_ready']).default('cod'),
   discountCode: z.string().trim().max(50).optional(),
 });
@@ -115,11 +117,14 @@ export const discountMutationSchema = z.object({
   discountType: z.enum(['percentage', 'fixed']).default('percentage'),
   discountValue: z.coerce.number().positive('Discount value must be positive'),
   minSpend: z.coerce.number().nonnegative().optional(),
+  maxDiscount: z.coerce.number().positive().optional(),
   usageLimit: z.coerce.number().int().positive().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   active: z.boolean().default(true),
-});
+}).refine(data => data.discountType !== 'percentage' || data.discountValue <= 100, { message: 'Percentage discounts cannot exceed 100%.' })
+  .refine(data => [data.startDate, data.endDate].every(value => !value || Number.isFinite(Date.parse(value))), { message: 'Discount dates must be valid dates.' })
+  .refine(data => !data.startDate || !data.endDate || Date.parse(data.startDate) <= Date.parse(data.endDate), { message: 'Discount end date must follow its start date.' });
 
 export const productMutationSchema = z.object({
   name: z.string().trim().min(2, 'Product name is required').max(200),

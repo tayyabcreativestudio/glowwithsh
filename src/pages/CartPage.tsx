@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { trackCart } from '../utils/analytics';
 import { useCart } from '../context/CartContext';
 import { formatINR } from '../utils/format';
 import { api } from '../services/api';
@@ -25,13 +26,15 @@ export const CartPage: React.FC<CartPageProps> = ({
     discountAmount,
     applyDiscount,
     clearDiscount,
+    shippingSettings,
   } = useCart();
   const [promoCode, setPromoCode] = useState('');
   const [promoError, setPromoError] = useState('');
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+  useEffect(() => { trackCart('view_cart', items); }, []);
 
-  const FREE_SHIPPING_THRESHOLD = 999;
-  const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0 ? 0 : 99;
+  const FREE_SHIPPING_THRESHOLD = shippingSettings.freeShippingThreshold;
+  const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0 ? 0 : shippingSettings.standardShippingFee;
   const grandTotal = Math.max(0, subtotal - discountAmount + shippingFee);
 
   const handleApplyPromo = async (e: React.FormEvent) => {
@@ -53,27 +56,11 @@ export const CartPage: React.FC<CartPageProps> = ({
       } else {
         discount = Math.min(subtotal, res.discountValue);
       }
-      applyDiscount(res.code, discount, res.minSpend || 0);
+      applyDiscount(res.code, res.discountAmount ?? discount, res.minSpend || 0);
       setPromoCode('');
       setPromoError('');
     } catch (err: any) {
-      if (code === 'GLOW10') {
-        if (subtotal < 999) {
-          setPromoError('Minimum ritual order value of ₹999 required for code GLOW10.');
-        } else {
-          applyDiscount('GLOW10', Math.round(subtotal * 0.1), 999);
-          setPromoCode('');
-        }
-      } else if (code === 'SHAGUFI') {
-        if (subtotal < 999) {
-          setPromoError('Minimum ritual order value of ₹999 required for code SHAGUFI.');
-        } else {
-          applyDiscount('SHAGUFI', Math.round(subtotal * 0.15), 999);
-          setPromoCode('');
-        }
-      } else {
-        setPromoError(err.message || 'Invalid promotional code. Try GLOW10 or RITUAL100');
-      }
+      setPromoError(err.message || 'Unable to validate this code. Please try again.');
     } finally {
       setIsValidatingPromo(false);
     }
@@ -93,7 +80,7 @@ export const CartPage: React.FC<CartPageProps> = ({
         </div>
         <h1 className="font-serif text-3xl text-[#1E1630]">Your Ritual Bag is Empty</h1>
         <p className="text-xs sm:text-sm font-sans text-[#6B5F82] max-w-sm">
-          Return to our atelier catalog to discover hand-blended cleansers, brightening creams, and botanical oils.
+          Browse product details, prices and availability in our skincare and beauty collection.
         </p>
         <button
           onClick={onNavigateToShop}
@@ -213,7 +200,7 @@ export const CartPage: React.FC<CartPageProps> = ({
               <div>
                 <label className="block text-xs font-sans text-[#6B5F82] mb-1.5 flex items-center gap-1">
                   <Tag size={12} className="text-[#A78BFA]" />
-                  <span>Promo Code (e.g. GLOW10)</span>
+                  <span>Promo Code</span>
                 </label>
                 {appliedPromo ? (
                   <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-sans">

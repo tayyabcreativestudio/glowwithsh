@@ -6,7 +6,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { Badge } from '../components/common/Badge';
 import { ProductCard } from '../components/storefront/ProductCard';
 import { api } from '../services/api';
-import { usePageSeo } from '../utils/seo';
+import { analyticsItem, trackCommerce } from '../utils/analytics';
 import {
   Plus,
   Minus,
@@ -38,9 +38,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   onNavigateToCheckout,
   onBackToShop,
 }) => {
-  const canonical = `https://www.glowwithsh.com/product/${encodeURIComponent(product.slug)}`;
-  usePageSeo({ title: product.seoTitle || `${product.name} | GlowWithSH`, description: product.seoDescription || product.shortDescription, canonical, image: product.primaryImage, schema: { '@context': 'https://schema.org', '@type': 'Product', name: product.name, description: product.shortDescription, image: [product.primaryImage], sku: product.sku, offers: { '@type': 'Offer', priceCurrency: 'INR', price: product.price, availability: product.stockQuantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock', url: canonical } } });
-  const { addToCart, setIsCartOpen } = useCart();
+  const { addToCart, setIsCartOpen, shippingSettings } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isWishlisted = isInWishlist(product.id);
   const [selectedImage, setSelectedImage] = useState(product.primaryImage);
@@ -63,6 +61,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
+    trackCommerce('view_item', [analyticsItem(product)], product.price);
     setSelectedImage(product.primaryImage);
     setQuantity(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -169,14 +168,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             <div className="flex-1 relative aspect-4/5 rounded-2xl overflow-hidden glass-card shadow-sm">
               <img
                 src={selectedImage}
-                alt={product.name}
+                alt={selectedImage.includes('images.unsplash.com') ? `Illustrative stock photo for ${product.name}` : product.name}
                 className="w-full h-full object-cover object-center"
               />
+              {selectedImage.includes('images.unsplash.com') && <p className="absolute bottom-3 left-3 right-3 rounded-lg bg-white/95 px-3 py-2 text-xs text-[#1E1630]">Illustrative stock photo. Contact the store for product packaging photos.</p>}
               {/* Badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-2">
-                {product.bestSeller && <Badge type="BESTSELLER" />}
-                {product.newProduct && <Badge type="NEW" />}
-                {product.limitedEdition && <Badge type="LIMITED" />}
+                {(product.featured || product.bestSeller || product.newProduct || product.limitedEdition) && <Badge type="FEATURED" />}
                 {discountPercent && (
                   <span className="bg-[#1E1630]/85 text-white text-[10px] font-sans uppercase font-semibold px-2.5 py-0.5 rounded-full shadow-sm">
                     {discountPercent}% OFF
@@ -315,14 +313,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             <div className="glass-surface p-4 rounded-2xl border border-[#DDD6F3] space-y-2 text-xs font-sans text-[#6B5F82]">
               <div className="flex items-center gap-2 text-[#1E1630]">
                 <Truck size={15} className="text-[#A78BFA]" />
-                <span>Complimentary express delivery on orders above ₹999</span>
+                <span>Free shipping from {formatINR(shippingSettings.freeShippingThreshold)}; shipping is confirmed at checkout.</span>
               </div>
               <div className="flex items-center gap-2 text-[#1E1630]">
                 <ShieldCheck size={15} className="text-[#A78BFA]" />
-                <span>Hand-inspected directly at our Delhi studio atelier</span>
+                <a href="/contact" className="underline">Questions about this product? Contact the store.</a>
               </div>
             </div>
 
+            <section className="space-y-2 text-sm leading-relaxed text-[#554C68]">
+              <h2 className="font-serif text-xl text-[#1E1630]">Before ordering</h2>
+              <p>Review the product details and directions. <a href="/contact" className="underline">Contact the store</a> if you need clarification before choosing this product.</p>
+            </section>
             {/* Accordion Tabs */}
             <div className="divide-y divide-[#DDD6F3] border-t border-b border-[#DDD6F3] pt-2">
               {/* Description */}
@@ -411,9 +413,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </button>
                 {openAccordions.shipping && (
                   <div className="pt-2 text-xs font-sans text-[#6B5F82] space-y-1.5 leading-relaxed">
-                    <p>Orders dispatched within 24–48 business hours from our Delhi studio.</p>
-                    <p>Transit takes 2–5 business days across Indian metro and regional cities.</p>
-                    <p>Real-time courier tracking number sent to your WhatsApp and Email.</p>
+                    <p>Check delivery terms before ordering. Contact the store for questions about your address or dispatch timing.</p>
+                    <p><a href="/policies/shipping" className="underline">Shipping information</a> · <a href="/policies/refunds" className="underline">Returns and refunds</a> · <a href="/track-order" className="underline">Track an order</a></p>
                   </div>
                 )}
               </div>
@@ -449,7 +450,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               >
                 <h4 className="font-serif text-lg text-[#1E1630]">Share your ritual experience</h4>
                 <p className="text-xs font-sans text-[#6B5F82]">
-                  All submitted reflections are reviewed by our studio team to ensure verified purchase safety.
+                  Submitted reviews are moderated before publication. A verified purchase badge appears only when the store has confirmed the purchase.
                 </p>
 
                 {reviewSubmitted ? (
@@ -513,7 +514,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             {/* Reviews List or Graceful Empty Notice */}
             {reviews.length === 0 ? (
               <div className="glass-card p-6 rounded-2xl text-center py-10 space-y-2">
-                <p className="font-serif text-lg text-[#1E1630]">No reviews verified yet for this formula</p>
+                <p className="font-serif text-lg text-[#1E1630]">No approved reviews yet for this product</p>
                 <p className="text-xs font-sans text-[#6B5F82]">
                   Be the first to share your experience with {product.name}.
                 </p>

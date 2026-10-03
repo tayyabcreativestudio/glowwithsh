@@ -19,10 +19,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             THE ATELIER PHILOSOPHY
           </span>
           <h1 className="font-serif text-4xl sm:text-6xl text-[#1E1630] font-normal leading-tight">
-            Beauty Begins With The Ritual
+            About GlowWithSH
           </h1>
           <p className="font-sans text-base sm:text-lg text-[#6B5F82] max-w-2xl mx-auto leading-relaxed">
-            GlowWithSH was born from a desire to return skincare to something personal, intentional, and calming.
+            Skincare and beauty by Shagufi Hussain, with face care, creams, serums and body care to explore at your own pace.
           </p>
         </div>
 
@@ -30,7 +30,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
         <div className="aspect-16/9 rounded-3xl overflow-hidden shadow-md border border-[#DDD6F3] glass-card">
           <img
             src="https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=1200&auto=format&fit=crop"
-            alt="GlowWithSH Ritual Studio"
+            alt="Skincare products arranged on a dressing table"
             className="w-full h-full object-cover"
           />
         </div>
@@ -38,13 +38,13 @@ export const AboutPage: React.FC<AboutPageProps> = ({
         {/* Brand Story Prose */}
         <div className="max-w-3xl mx-auto space-y-6 font-sans text-[#6B5F82] leading-relaxed text-base">
           <p className="font-serif text-2xl sm:text-3xl text-[#1E1630] leading-snug">
-            "We believe everyday skincare should not feel like an aggressive chemical chore, but a peaceful ritual of self-appreciation."
+            A little time for yourself. A routine that feels like yours.
           </p>
           <p>
-            Founded by <strong>Shagufi Hussain</strong> in Delhi, GlowWithSH crafts thoughtfully composed skincare formulas that combine the restorative qualities of botanical traditions with contemporary dermatological comfort.
+            Founded by <strong>Shagufi Hussain</strong>, GlowWithSH brings together skincare and beauty essentials for everyday routines and special occasions.
           </p>
           <p>
-            Each formulation — from our micro-foaming Golden Facewash and fermented Korean Rice Serums to our intensely nourishing Ceremonial Bridal Creams — is developed with meticulous attention to texture, absorption, and skin barrier harmony.
+            Browse the collection, read each product’s details and usage information, and choose what fits your routine. If you need help comparing products or checking an order, contact the store before you decide.
           </p>
         </div>
 
@@ -54,9 +54,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             <div className="w-10 h-10 rounded-full bg-[#A78BFA]/15 flex items-center justify-center text-[#7C3AED]">
               <Leaf size={20} />
             </div>
-            <h3 className="font-serif text-xl text-[#1E1630]">Intentional Ingredients</h3>
+            <h2 className="font-serif text-xl text-[#1E1630]">Explore the collection</h2>
             <p className="text-xs font-sans text-[#6B5F82] leading-relaxed">
-              Every botanical oil, peptide, and soothing extract is purposefully selected to nourish rather than overwhelm.
+              Find face care, creams, serums and body care, with prices and availability shown on each product page.
             </p>
           </div>
 
@@ -64,9 +64,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             <div className="w-10 h-10 rounded-full bg-[#A78BFA]/15 flex items-center justify-center text-[#7C3AED]">
               <ShieldCheck size={20} />
             </div>
-            <h3 className="font-serif text-xl text-[#1E1630]">Delhi Atelier Standards</h3>
+            <h2 className="font-serif text-xl text-[#1E1630]">Know before you order</h2>
             <p className="text-xs font-sans text-[#6B5F82] leading-relaxed">
-              Formulated, inspected, and shipped directly from our dedicated studio in Subhash Vihar, Delhi 110053.
+              Read the shipping and returns information before checkout. For a question about your delivery address or order, get in touch with the store.
             </p>
           </div>
 
@@ -74,9 +74,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             <div className="w-10 h-10 rounded-full bg-[#A78BFA]/15 flex items-center justify-center text-[#7C3AED]">
               <Heart size={20} />
             </div>
-            <h3 className="font-serif text-xl text-[#1E1630]">Cruelty-Free Craft</h3>
+            <h2 className="font-serif text-xl text-[#1E1630]">Ask us a question</h2>
             <p className="text-xs font-sans text-[#6B5F82] leading-relaxed">
-              Never tested on animals. Formulated for everyday harmony across diverse Indian skin types and changing seasons.
+              Need more information about a product? Ask for details before adding it to your routine. Individual experiences can vary.
             </p>
           </div>
         </div>

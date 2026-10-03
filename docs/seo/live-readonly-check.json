@@ -1,0 +1,97 @@
+{
+  "checkedAt": "2026-10-03T06:15:08.697Z",
+  "method": "Unauthenticated read-only HTTP; current live build, not changed local code",
+  "results": [
+    {
+      "route": "/",
+      "status": 200,
+      "finalUrl": "https://www.glowwithsh.com/",
+      "bytes": 2981,
+      "title": "GlowWithSH — Luxury Skincare &amp; Beauty Rituals by Shagufi Hussain",
+      "canonical": "https://www.glowwithsh.com",
+      "initialH1Count": 0,
+      "cacheControl": "public, max-age=3600",
+      "contentType": "text/html; charset=UTF-8"
+    },
+    {
+      "route": "/shop",
+      "status": 200,
+      "finalUrl": "https://www.glowwithsh.com/shop",
+      "bytes": 2981,
+      "title": "GlowWithSH — Luxury Skincare &amp; Beauty Rituals by Shagufi Hussain",
+      "canonical": "https://www.glowwithsh.com",
+      "initialH1Count": 0,
+      "cacheControl": "no-cache, must-revalidate",
+      "contentType": "text/html; charset=UTF-8"
+    },
+    {
+      "route": "/admin/",
+      "status": 200,
+      "finalUrl": "https://www.glowwithsh.com/admin/",
+      "bytes": 2981,
+      "title": "GlowWithSH — Luxury Skincare &amp; Beauty Rituals by Shagufi Hussain",
+      "canonical": "https://www.glowwithsh.com",
+      "initialH1Count": 0,
+      "cacheControl": "no-cache, must-revalidate",
+      "contentType": "text/html; charset=UTF-8"
+    },
+    {
+      "route": "/api/health",
+      "status": 200,
+      "finalUrl": "https://www.glowwithsh.com/api/health",
+      "bytes": 122,
+      "initialH1Count": 0,
+      "cacheControl": null,
+      "contentType": "application/json; charset=utf-8"
+    },
+    {
+      "route": "/api/products",
+      "status": 200,
+      "finalUrl": "https://www.glowwithsh.com/api/products",
+      "bytes": 37371,
+      "initialH1Count": 0,
+      "publicCount": 20,
+      "exposesCostField": true,
+      "cacheControl": null,
+      "contentType": "application/json; charset=utf-8"
+    },
+    {
+      "route": "/api/products?includeDrafts=true",
+      "status": 200,
+      "finalUrl": "https://www.glowwithsh.com/api/products?includeDrafts=true",
+      "bytes": 37371,
+      "initialH1Count": 0,
+      "publicCount": 20,
+      "exposesCostField": true,
+      "cacheControl": null,
+      "contentType": "application/json; charset=utf-8"
+    },
+    {
+      "route": "/api/admin/media",
+      "status": 401,
+      "finalUrl": "https://www.glowwithsh.com/api/admin/media",
+      "bytes": 72,
+      "initialH1Count": 0,
+      "cacheControl": null,
+      "contentType": "application/json; charset=utf-8"
+    },
+    {
+      "route": "/robots.txt",
+      "status": 200,
+      "finalUrl": "https://www.glowwithsh.com/robots.txt",
+      "bytes": 128,
+      "initialH1Count": 0,
+      "cacheControl": null,
+      "contentType": "text/plain; charset=utf-8"
+    },
+    {
+      "route": "/sitemap.xml",
+      "status": 200,
+      "finalUrl": "https://www.glowwithsh.com/sitemap.xml",
+      "bytes": 7099,
+      "initialH1Count": 0,
+      "cacheControl": null,
+      "contentType": "application/xml; charset=utf-8"
+    }
+  ]
+}

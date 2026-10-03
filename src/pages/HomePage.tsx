@@ -51,11 +51,11 @@ export const HomePage: React.FC<HomePageProps> = ({
   };
 
   // All published products
-  const publishedProducts = products.filter((p) => p.status === 'published');
+  const publishedProducts = products.filter((p) => p.status === 'published' && p.visible !== false);
 
   // Section: Featured Products for rail
   const featuredProducts = products
-    .filter((p) => p.featured && p.status === 'published')
+    .filter((p) => p.featured && p.status === 'published' && p.visible !== false)
     .slice(0, 6);
 
   return (
@@ -75,7 +75,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           categories={categories}
           onSelectCategory={(slug) => {
             onSelectCategory(slug);
-            onNavigate(`/shop?category=${slug}`);
+            onNavigate(`/shop/category/${slug}`);
           }}
         />
       )}

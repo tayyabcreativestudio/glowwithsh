@@ -34,6 +34,7 @@ import {
   initialOrders,
 } from '../src/data/seedData';
 import { hashPassword, verifyPassword } from './security';
+import { SqliteStorage } from './sqlite-storage';
 
 export interface DatabaseSchema {
   products: Product[];
@@ -66,6 +67,11 @@ const DB_BACKUP_FILE = path.join(DATA_DIR, 'db.json.bak');
 const DB_LOCK_FILE = path.join(DATA_DIR, '.db.lock');
 const DB_LOCK_TIMEOUT_MS = 10_000;
 const DB_LOCK_STALE_MS = 30_000;
+let sqlite: SqliteStorage | undefined;
+function sqliteStore(): SqliteStorage | undefined {
+  if (process.env.DB_DRIVER !== 'sqlite') return undefined;
+  return sqlite ||= new SqliteStorage(DATA_DIR);
+}
 
 const defaultDatabase: DatabaseSchema = {
   products: initialProducts,
@@ -285,6 +291,20 @@ function migrateDatabaseSecurity(db: DatabaseSchema): boolean {
 
 export function loadDatabase(): DatabaseSchema {
   try {
+    const store = sqliteStore();
+    if (store) {
+      const content = store.read();
+      if (content) {
+        memoryDb = JSON.parse(content);
+        if (!Array.isArray(memoryDb.pages)) memoryDb.pages = [];
+        if (migrateDatabaseSecurity(memoryDb)) saveDatabase(memoryDb);
+        return memoryDb;
+      }
+      memoryDb = structuredClone(defaultDatabase);
+      migrateDatabaseSecurity(memoryDb);
+      saveDatabase(memoryDb);
+      return memoryDb;
+    }
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
@@ -334,8 +354,8 @@ export function loadDatabase(): DatabaseSchema {
     saveDatabase(defaultDatabase);
     return defaultDatabase;
   } catch (err) {
-    console.error('Error loading db.json, using in-memory default:', err);
-    return defaultDatabase;
+    console.error('Database could not be loaded. Startup or transaction stopped.');
+    throw new Error('Database unavailable. Restore valid storage before restarting.');
   }
 }
 
@@ -346,6 +366,8 @@ export function saveDatabase(data: DatabaseSchema): boolean {
     }
     memoryDb = data;
     const jsonStr = JSON.stringify(data, null, 2);
+    const store = sqliteStore();
+    if (store) { store.write(jsonStr); return true; }
 
     // Atomic write strategy: write to temporary file, then rename atomically
     const tempFile = path.join(
@@ -361,13 +383,13 @@ export function saveDatabase(data: DatabaseSchema): boolean {
     } catch (_) {}
     return true;
   } catch (err) {
-    console.error('Error saving db.json:', err);
-    return false;
+    console.error('Database persistence failed.');
+    throw new Error('Unable to save changes. Please try again.');
   }
 }
 
 export function getDatabase(): DatabaseSchema {
-  if (!memoryDb || !memoryDb.products || memoryDb.products.length === 0) {
+  if (!memoryDb || !Array.isArray(memoryDb.products)) {
     return loadDatabase();
   }
   return memoryDb;
@@ -419,9 +441,17 @@ export async function withDatabaseLock<T>(fn: (db: DatabaseSchema) => T | Promis
 
   try {
     loadDatabase();
-    const result = await fn(getDatabase());
-    saveDatabase(getDatabase());
-    return result;
+    const original = structuredClone(getDatabase());
+    try {
+      const pending = fn(getDatabase());
+      const result = pending instanceof Promise ? await pending : pending;
+      saveDatabase(getDatabase());
+      return result;
+    } catch (error) {
+      // A rejected checkout must not leave stock/coupon mutations in memory.
+      memoryDb = original;
+      throw error;
+    }
   } finally {
     try {
       fs.unlinkSync(DB_LOCK_FILE);

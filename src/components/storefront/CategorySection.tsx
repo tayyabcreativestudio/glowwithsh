@@ -81,7 +81,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                   <div className="flex items-end justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-wide drop-shadow-sm">
-                        {cat.name}
+                        <a href={`/shop/category/${cat.slug}`} onClick={event => { event.preventDefault(); event.stopPropagation(); onSelectCategory(cat.slug); }}>{cat.name}</a>
                       </h3>
                       <p className="text-xs font-sans text-white/75 mt-1.5 line-clamp-2 leading-relaxed">
                         {cat.description}

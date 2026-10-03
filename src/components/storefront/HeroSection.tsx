@@ -17,12 +17,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [videoError, setVideoError] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(true);
+  const [mobileVideo, setMobileVideo] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setPrefersReducedMotion(mediaQuery.matches);
+      const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+      setPrefersReducedMotion(mediaQuery.matches || Boolean(connection?.saveData));
+      setMobileVideo(window.matchMedia('(max-width: 767px)').matches);
 
       const handleChange = (e: MediaQueryListEvent) => {
         setPrefersReducedMotion(e.matches);
@@ -80,8 +83,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     }
   };
 
-  const posterSrc = cms.posterImage || '/images/hero_poster_v2.webp?v=2';
+  const defaultPoster = !cms.posterImage || /^\/images\/hero[_-]poster(?:_v2)?\.(webp|jpg)/.test(cms.posterImage);
+  const posterSrc = defaultPoster ? `/images/hero-poster-${mobileVideo ? 640 : 1920}.webp` : cms.posterImage;
+  const posterSrcSet = defaultPoster ? '/images/hero-poster-640.webp 640w, /images/hero-poster-1280.webp 1280w, /images/hero-poster-1920.webp 1920w' : undefined;
   const videoSrc = (cms.videoUrl && !cms.videoUrl.includes('hero_glowwithsh')) ? cms.videoUrl : '/videos/hero_skincare.mp4';
+  const selectedVideoSrc = mobileVideo ? (cms.mobileVideoUrl || '/videos/hero_mobile_v2.mp4') : videoSrc;
 
   return (
     <section
@@ -101,24 +107,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       <div className="absolute inset-0 w-full h-full overflow-hidden">
         {!videoError && !prefersReducedMotion ? (
           <video
-            key={videoSrc}
+            key={selectedVideoSrc}
             ref={videoRef}
-            src={videoSrc}
+            src={selectedVideoSrc}
             autoPlay={cms.autoplay !== false}
             muted={isMuted}
             loop
             playsInline
-            preload="auto"
+            preload="metadata"
             poster={posterSrc}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onError={(e) => {
-              console.warn('Hero video element notice:', e);
-            }}
+            onError={() => setVideoError(true)}
             className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000 ease-out opacity-80"
           >
-            <source src={videoSrc} type="video/mp4" />
-            <source src="/videos/hero_skincare.mp4" type="video/mp4" />
             {/* Fallback image */}
             <img
               src={posterSrc}
@@ -130,6 +132,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <img
             src={posterSrc}
             alt="GlowWithSH luxury skincare rituals by Shagufi Hussain"
+            fetchPriority="high"
+            srcSet={posterSrcSet}
+            sizes="100vw"
             className="w-full h-full object-cover object-center opacity-60"
           />
         )}
@@ -162,7 +167,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* Main Headline */}
         <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-light tracking-tight text-white max-w-3xl mx-auto leading-[1.08] mb-6 drop-shadow-lg">
-          {cms.headline || 'Your Glow, Your Ritual.'}
+          {cms.headline || 'Your Glow, Your Ritual.'}<span className="sr-only"> — GlowWithSH Skincare &amp; Beauty</span>
         </h1>
 
         {/* Subheadline */}

@@ -133,6 +133,8 @@ export interface Order {
   dispatchDate?: string;
   currentLocation?: string;
   razorpayOrderId?: string;
+  paymentIntentState?: 'creating' | 'ready' | 'reconcile';
+  checkoutRequestKey?: string;
   stockReserved?: boolean;
   stockRestored?: boolean;
   refundId?: string;

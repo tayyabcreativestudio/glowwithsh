@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { formatINR } from '../utils/format';
 import { api } from '../services/api';
 import { Order } from '../types';
 import { ShieldCheck, Truck, ArrowRight, ArrowLeft, MessageSquare, CreditCard, Smartphone } from 'lucide-react';
 import { OnlinePaymentModal } from '../components/checkout/OnlinePaymentModal';
+import { trackCart, trackPurchase } from '../utils/analytics';
 
 interface CheckoutPageProps {
   onBackToCart: () => void;
@@ -37,15 +38,24 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [promoCode, setPromoCode] = useState('');
   const [promoError, setPromoError] = useState('');
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'online_ready' | 'cod' | 'whatsapp'>('online_ready');
+  const [paymentMethod, setPaymentMethod] = useState<'online_ready' | 'cod' | 'whatsapp'>('cod');
+  useEffect(() => { trackCart('begin_checkout', items); }, []);
+  const [onlineEnabled, setOnlineEnabled] = useState(false);
+  const [shippingSettings, setShippingSettings] = useState({ freeShippingThreshold: 999, standardShippingFee: 99 });
+  useEffect(() => {
+    api.getSiteSettings().then(settings => {
+      setOnlineEnabled(Boolean((settings as typeof settings & { onlinePaymentsEnabled?: boolean }).onlinePaymentsEnabled));
+      setShippingSettings({ freeShippingThreshold: settings.freeShippingThreshold, standardShippingFee: settings.standardShippingFee });
+    }).catch(() => {});
+  }, []);
   const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
   const [pendingWhatsappUrl, setPendingWhatsappUrl] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const FREE_SHIPPING_THRESHOLD = 999;
-  const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0 ? 0 : 99;
+  const FREE_SHIPPING_THRESHOLD = shippingSettings.freeShippingThreshold;
+  const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0 ? 0 : shippingSettings.standardShippingFee;
   const grandTotal = Math.max(0, subtotal - discountAmount + shippingFee);
 
   const handleApplyPromo = async () => {
@@ -65,27 +75,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       } else {
         amount = Math.min(subtotal, res.discountValue);
       }
-      applyDiscount(res.code, amount, res.minSpend || 0);
+      applyDiscount(res.code, res.discountAmount ?? amount, res.minSpend || 0);
       setPromoCode('');
       setPromoError('');
     } catch (err: any) {
-      if (cleanCode === 'GLOW10') {
-        if (subtotal < 999) {
-          setPromoError('Minimum ritual order value of ₹999 required for code GLOW10.');
-        } else {
-          applyDiscount('GLOW10', Math.round(subtotal * 0.1), 999);
-          setPromoCode('');
-        }
-      } else if (cleanCode === 'SHAGUFI') {
-        if (subtotal < 999) {
-          setPromoError('Minimum ritual order value of ₹999 required for code SHAGUFI.');
-        } else {
-          applyDiscount('SHAGUFI', Math.round(subtotal * 0.15), 999);
-          setPromoCode('');
-        }
-      } else {
-        setPromoError(err.message || 'Invalid or inactive promotional code');
-      }
+      setPromoError(err.message || 'Unable to validate this code. Please try again.');
     } finally {
       setIsValidatingPromo(false);
     }
@@ -99,6 +93,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    trackCart('add_payment_info', items);
     setErrorMsg('');
 
     const cleanName = fullName.trim();
@@ -118,7 +113,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
 
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setErrorMsg('Please enter a valid email address for tracking & invoices.');
+      setErrorMsg('Please enter a valid email address.');
       return;
     }
 
@@ -175,6 +170,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         );
       } catch (_) {}
 
+      trackPurchase(result.order);
       clearCart();
       onOrderSuccess(result.order, result.whatsappUrl);
     } catch (err: any) {
@@ -208,6 +204,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         );
       } catch (_) {}
 
+      trackPurchase(verifyRes.order);
       clearCart();
       setShowPaymentModal(false);
       onOrderSuccess(verifyRes.order, pendingWhatsappUrl);
@@ -267,14 +264,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             <ArrowLeft size={14} />
             <span>Return to Bag</span>
           </button>
-          <span className="font-serif text-2xl font-medium tracking-wide text-[#1E1630]">
-            GlowWithSH Atelier Checkout
-          </span>
+          <h1 className="font-serif text-2xl font-medium tracking-wide text-[#1E1630]">
+            Checkout
+          </h1>
           <div className="w-16" />
         </div>
 
         {errorMsg && (
-          <div className="p-4 mb-6 bg-red-50 text-red-800 rounded-xl text-xs font-sans border border-red-200">
+          <div role="alert" className="p-4 mb-6 bg-red-50 text-red-800 rounded-xl text-xs font-sans border border-red-200">
             {errorMsg}
           </div>
         )}
@@ -284,14 +281,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           <div className="lg:col-span-7 space-y-8">
             {/* Contact Details */}
             <div className="glass-card p-6 sm:p-8 rounded-2xl shadow-sm space-y-4">
-              <h3 className="font-serif text-xl text-[#1E1630]">1. Contact Information</h3>
+              <h2 className="font-serif text-xl text-[#1E1630]">1. Contact Information</h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                  <label htmlFor="checkoutpage-field-1" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                     Full Name *
                   </label>
-                  <input
+                  <input id="checkoutpage-field-1"
                     type="text"
                     required
                     value={fullName}
@@ -302,10 +299,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                  <label htmlFor="checkoutpage-field-2" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                     Mobile / WhatsApp Number *
                   </label>
-                  <input
+                  <input id="checkoutpage-field-2"
                     type="tel"
                     required
                     value={phone}
@@ -317,10 +314,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
-                  Email Address (For order invoices &amp; tracking)
+                <label htmlFor="checkoutpage-field-3" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                  Email Address (Optional)
                 </label>
-                <input
+                <input id="checkoutpage-field-3"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -332,13 +329,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
             {/* Delivery Address */}
             <div className="glass-card p-6 sm:p-8 rounded-2xl shadow-sm space-y-4">
-              <h3 className="font-serif text-xl text-[#1E1630]">2. Delivery Address (India)</h3>
+              <h2 className="font-serif text-xl text-[#1E1630]">2. Delivery Address (India)</h2>
 
               <div>
-                <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                <label htmlFor="checkoutpage-field-4" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                   House / Flat / Street Address *
                 </label>
-                <input
+                <input id="checkoutpage-field-4"
                   type="text"
                   required
                   value={addressLine1}
@@ -349,10 +346,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                <label htmlFor="checkoutpage-field-5" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                   Apartment, Suite, Landmark (Optional)
                 </label>
-                <input
+                <input id="checkoutpage-field-5"
                   type="text"
                   value={addressLine2}
                   onChange={(e) => setAddressLine2(e.target.value)}
@@ -363,10 +360,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                  <label htmlFor="checkoutpage-field-6" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                     City *
                   </label>
-                  <input
+                  <input id="checkoutpage-field-6"
                     type="text"
                     required
                     value={city}
@@ -377,10 +374,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                  <label htmlFor="checkoutpage-field-7" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                     State *
                   </label>
-                  <input
+                  <input id="checkoutpage-field-7"
                     type="text"
                     required
                     value={state}
@@ -391,10 +388,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                  <label htmlFor="checkoutpage-field-8" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                     PIN Code *
                   </label>
-                  <input
+                  <input id="checkoutpage-field-8"
                     type="text"
                     required
                     value={postalCode}
@@ -406,10 +403,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
+                <label htmlFor="checkoutpage-field-9" className="block text-xs font-sans font-medium text-[#1E1630] mb-1">
                   Delivery Instructions (Optional)
                 </label>
-                <textarea
+                <textarea id="checkoutpage-field-9"
                   rows={2}
                   value={deliveryNotes}
                   onChange={(e) => setDeliveryNotes(e.target.value)}
@@ -422,10 +419,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             {/* Payment Method */}
             <div className="glass-card p-6 sm:p-8 rounded-2xl shadow-sm space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-serif text-xl text-[#1E1630]">3. Payment Preference</h3>
+                <h2 className="font-serif text-xl text-[#1E1630]">3. Payment Preference</h2>
                 <span className="text-[11px] font-sans text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-medium flex items-center gap-1">
                   <ShieldCheck size={12} />
-                  <span>100% Encrypted</span>
+                  <span>Secure checkout</span>
                 </span>
               </div>
 
@@ -442,6 +439,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     type="radio"
                     name="paymentMethod"
                     checked={paymentMethod === 'online_ready'}
+                    disabled={!onlineEnabled}
                     onChange={() => setPaymentMethod('online_ready')}
                     className="mt-1 accent-[#7C3AED]"
                   />
@@ -452,11 +450,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         <span>Instant Online Payment (UPI, Cards, NetBanking)</span>
                       </span>
                       <span className="text-[10px] font-sans bg-[#A78BFA]/20 text-[#7C3AED] px-2 py-0.5 rounded font-semibold uppercase tracking-wider">
-                        Fastest Dispatch
+                        Razorpay
                       </span>
                     </div>
                     <p className="text-xs text-[#6B5F82] mt-1">
-                      Pay instantly with Google Pay, PhonePe, Paytm, BHIM UPI QR, or Debit/Credit Cards. Zero transaction fees.
+                      {onlineEnabled ? 'Pay through Razorpay using the methods available at checkout.' : 'Online payment is currently unavailable. Please choose Cash on Delivery.'}
                     </p>
                   </div>
                 </label>
@@ -481,7 +479,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       Cash on Delivery (COD)
                     </span>
                     <p className="text-xs text-[#6B5F82] mt-0.5">
-                      Pay conveniently in cash or UPI to the courier partner upon package arrival at your doorstep.
+                      Pay in cash when your order is delivered. Available for orders up to ₹5,000.
                     </p>
                   </div>
                 </label>
@@ -504,10 +502,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <div>
                     <span className="font-semibold text-xs uppercase tracking-wider text-[#1E1630] flex items-center gap-1.5">
                       <MessageSquare size={13} className="text-emerald-700" />
-                      Instant WhatsApp Confirmation
+                      Order enquiry via WhatsApp
                     </span>
                     <p className="text-xs text-[#6B5F82] mt-0.5">
-                      Our studio concierge will verify your order on WhatsApp (+91 7303490594) and share direct custom payment details.
+                      Continue to WhatsApp to contact the store about your order. You will need to send the message yourself.
                     </p>
                   </div>
                 </label>
@@ -518,7 +516,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           {/* Right: Order Summary Sidebar */}
           <div className="lg:col-span-5 space-y-6">
             <div className="glass-card p-6 sm:p-8 rounded-2xl shadow-sm space-y-5 sticky top-24">
-              <h3 className="font-serif text-xl text-[#1E1630]">Order Items ({items.length})</h3>
+              <h2 className="font-serif text-xl text-[#1E1630]">Order Items ({items.length})</h2>
 
               {/* Items preview list */}
               <div className="max-h-60 overflow-y-auto space-y-3 divide-y divide-[#DDD6F3]">
@@ -567,7 +565,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Promo code (e.g. GLOW10)"
+                        placeholder="Promo code"
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
                         className="flex-1 px-3 py-2 text-xs font-sans glass-surface border border-[#DDD6F3] rounded-xl uppercase tracking-wider focus:outline-none focus:border-[#7C3AED] text-[#1E1630]"
@@ -640,7 +638,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               <div className="pt-2 text-[11px] text-[#6B5F82] font-sans space-y-1.5">
                 <div className="flex items-center gap-1.5">
                   <Truck size={13} className="text-[#A78BFA]" />
-                  <span>Dispatched from Delhi Atelier within 24-48 hours</span>
+                  <span>Review shipping and returns information before ordering</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck size={13} className="text-[#A78BFA]" />

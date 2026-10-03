@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { useDialogFocus } from '../../utils/useDialogFocus';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Truck, Sparkles } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { formatINR } from '../../utils/format';
@@ -22,13 +23,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     updateQuantity,
     subtotal,
     totalCount,
+    shippingSettings,
   } = useCart();
+  const close = useCallback(() => setIsCartOpen(false), [setIsCartOpen]);
+  useDialogFocus(isCartOpen, 'cart-drawer-panel', close);
 
   if (!isCartOpen) return null;
 
-  const FREE_SHIPPING_THRESHOLD = 999;
+  const FREE_SHIPPING_THRESHOLD = shippingSettings.freeShippingThreshold;
   const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
-  const freeShippingProgress = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100));
+  const freeShippingProgress = FREE_SHIPPING_THRESHOLD > 0 ? Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100)) : 100;
 
   return (
     <div
@@ -41,6 +45,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     >
       <div
         id="cart-drawer-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Your shopping bag"
         className="w-full max-w-md h-full shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300"
         style={{
           background: 'rgba(248, 245, 255, 0.97)',
