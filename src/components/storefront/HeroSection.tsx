@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { ArrowRight, Volume2, VolumeX, Play, Pause } from 'lucide-react';
+import { ArrowRight, Play, Pause } from 'lucide-react';
 import { HomepageCMS } from '../../types';
 
 interface HeroSectionProps {
@@ -14,8 +14,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onSecondaryClick,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoEnabled, setVideoEnabled] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(true);
   const [mobileVideo, setMobileVideo] = useState(false);
@@ -38,16 +39,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     }
   }, []);
 
-  // Guarantee seamless video autoplay across all browser policies
+  // The decorative video is downloaded only when the visitor presses Play.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     video.defaultMuted = true;
-    video.muted = isMuted;
+    video.muted = true;
     video.playsInline = true;
 
-    if (cms.autoplay !== false && !prefersReducedMotion) {
+    if (videoEnabled && !prefersReducedMotion) {
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise
@@ -55,24 +56,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             setIsPlaying(true);
           })
           .catch((err) => {
-            console.log('Autoplay muted retry fallback triggered:', err);
-            video.muted = true;
-            setIsMuted(true);
-            video.play().then(() => setIsPlaying(true)).catch(() => {});
+            setIsPlaying(false);
           });
       }
     }
-  }, [cms.autoplay, prefersReducedMotion, cms.videoUrl, isMuted]);
-
-  const toggleSound = () => {
-    if (videoRef.current) {
-      const nextMuted = !videoRef.current.muted;
-      videoRef.current.muted = nextMuted;
-      setIsMuted(nextMuted);
-    }
-  };
+  }, [videoEnabled, prefersReducedMotion, cms.videoUrl]);
 
   const togglePlay = () => {
+    if (!videoEnabled) { setVideoEnabled(true); return; }
     if (videoRef.current) {
       if (videoRef.current.paused) {
         videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
@@ -105,38 +96,37 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
       {/* Video Background with Direct Source & Fallbacks */}
       <div className="absolute inset-0 w-full h-full overflow-hidden">
-        {!videoError && !prefersReducedMotion ? (
+        <img
+          src={posterSrc}
+          alt=""
+          aria-hidden="true"
+          fetchPriority="high"
+          srcSet={posterSrcSet}
+          sizes="100vw"
+          width="1920"
+          height="1080"
+          className="w-full h-full object-cover object-center opacity-60"
+        />
+        {videoEnabled && !videoError && !prefersReducedMotion && (
           <video
             key={selectedVideoSrc}
             ref={videoRef}
             src={selectedVideoSrc}
-            autoPlay={cms.autoplay !== false}
-            muted={isMuted}
+            autoPlay
+            muted
+            aria-hidden="true"
+            tabIndex={-1}
             loop
             playsInline
-            preload="metadata"
+            preload="none"
             poster={posterSrc}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
+            onCanPlay={() => setVideoReady(true)}
             onError={() => setVideoError(true)}
-            className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000 ease-out opacity-80"
+            className={`absolute inset-0 w-full h-full object-cover object-center ${videoReady ? 'opacity-80' : 'opacity-0'}`}
           >
-            {/* Fallback image */}
-            <img
-              src={posterSrc}
-              alt="GlowWithSH luxury skincare rituals by Shagufi Hussain"
-              className="w-full h-full object-cover opacity-60"
-            />
           </video>
-        ) : (
-          <img
-            src={posterSrc}
-            alt="GlowWithSH luxury skincare rituals by Shagufi Hussain"
-            fetchPriority="high"
-            srcSet={posterSrcSet}
-            sizes="100vw"
-            className="w-full h-full object-cover object-center opacity-60"
-          />
         )}
 
         {/* Purple gradient overlay */}
@@ -232,20 +222,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {isPlaying ? <Pause size={15} /> : <Play size={15} className="translate-x-0.5" />}
           </button>
 
-          <button
-            onClick={toggleSound}
-            className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-colors"
-            style={{
-              background: 'rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(167, 139, 250, 0.3)',
-              color: 'white',
-            }}
-            aria-label={isMuted ? 'Unmute video' : 'Mute video'}
-            title={isMuted ? 'Unmute audio' : 'Mute audio'}
-          >
-            {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-          </button>
         </div>
       )}
 

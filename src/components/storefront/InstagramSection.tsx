@@ -1,6 +1,7 @@
 import React from 'react';
 import { Instagram, ArrowUpRight } from 'lucide-react';
 import { InstagramSettings } from '../../types';
+import { responsiveImage } from '../../utils/responsiveImage';
 
 interface InstagramSectionProps {
   settings: InstagramSettings;
@@ -14,7 +15,7 @@ export const InstagramSection: React.FC<InstagramSectionProps> = ({ settings }) 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
           <div>
-            <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#A78BFA] font-semibold flex items-center gap-1.5">
+            <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#6D28D9] font-semibold flex items-center gap-1.5">
               <Instagram size={14} />
               <span>COMMUNITY &amp; RITUALS</span>
             </span>
@@ -49,7 +50,8 @@ export const InstagramSection: React.FC<InstagramSectionProps> = ({ settings }) 
               style={{ border: '1px solid rgba(167, 139, 250, 0.15)' }}
             >
               <img
-                src={post.imageUrl}
+                {...responsiveImage(post.imageUrl, '(min-width: 1024px) 25vw, 50vw')}
+                width="640" height="640"
                 alt={post.caption || 'GlowWithSH Instagram'}
                 className="w-full h-full object-cover group-hover:scale-106 transition-transform duration-700 ease-out"
                 loading="lazy"
@@ -58,7 +60,7 @@ export const InstagramSection: React.FC<InstagramSectionProps> = ({ settings }) 
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-4 text-center text-white"
                 style={{ background: 'linear-gradient(135deg, rgba(30, 22, 48, 0.8), rgba(124, 58, 237, 0.6))' }}
               >
-                <Instagram size={24} className="text-[#A78BFA] mb-2" />
+                <Instagram size={24} className="text-[#6D28D9] mb-2" />
                 <p className="text-xs font-sans line-clamp-3 leading-snug">
                   {post.caption}
                 </p>

@@ -2812,7 +2812,7 @@ async function start() {
 
   const mediaOptions = {
     setHeaders: (res: Response) => {
-      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      res.setHeader('Cache-Control', 'public, max-age=604800');
     },
   };
 

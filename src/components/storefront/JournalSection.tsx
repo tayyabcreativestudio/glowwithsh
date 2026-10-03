@@ -1,4 +1,5 @@
 import React from 'react';
+import { responsiveImage } from '../../utils/responsiveImage';
 import { ArrowRight, Clock, BookOpen } from 'lucide-react';
 import { BlogPost } from '../../types';
 import { formatDate } from '../../utils/format';
@@ -24,7 +25,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
           <div>
-            <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#A78BFA] font-semibold flex items-center gap-1.5">
+            <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#6D28D9] font-semibold flex items-center gap-1.5">
               <BookOpen size={14} />
               <span>THE GLOW JOURNAL</span>
             </span>
@@ -38,7 +39,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
 
           <button
             onClick={onViewAll}
-            className="inline-flex items-center gap-2 text-xs uppercase font-sans font-semibold tracking-wider text-[#7C3AED] hover:text-[#A78BFA] transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 text-xs uppercase font-sans font-semibold tracking-wider text-[#7C3AED] hover:text-[#6D28D9] transition-colors cursor-pointer"
           >
             <span>Read All Articles</span>
             <ArrowRight size={14} />
@@ -54,8 +55,9 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
             >
               <div className="relative aspect-16/10 overflow-hidden bg-[#EDE8F5]">
                 <img
-                  src={article.coverImage}
-                  alt={article.title}
+                  {...responsiveImage(article.coverImage, '(min-width: 768px) 33vw, 100vw')}
+                  width="800" height="500"
+                  alt=""
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                   loading="lazy"
                 />
@@ -90,7 +92,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-[#DDD6F3]/60 flex items-center justify-between text-xs font-sans font-semibold text-[#7C3AED] group-hover:text-[#A78BFA]">
+                <div className="pt-3 border-t border-[#DDD6F3]/60 flex items-center justify-between text-xs font-sans font-semibold text-[#7C3AED] group-hover:text-[#6D28D9]">
                   <span>Read Article</span>
                   <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </div>

@@ -17,7 +17,7 @@ export const AwardsSection: React.FC<AwardsSectionProps> = ({ awards }) => {
       <section className="py-12 relative overflow-hidden">
         <div className="absolute inset-0 glass-surface" />
         <div className="max-w-4xl mx-auto px-4 text-center space-y-2 relative">
-          <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#A78BFA] font-semibold">
+          <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#6D28D9] font-semibold">
             Commitment to Authenticity
           </span>
           <p className="font-serif text-xl sm:text-2xl text-[#1E1630]">
@@ -37,7 +37,7 @@ export const AwardsSection: React.FC<AwardsSectionProps> = ({ awards }) => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
-          <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#A78BFA] font-semibold flex items-center justify-center gap-1.5">
+          <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#6D28D9] font-semibold flex items-center justify-center gap-1.5">
             <AwardIcon size={14} />
             <span>Verified Recognitions</span>
           </span>
@@ -56,7 +56,7 @@ export const AwardsSection: React.FC<AwardsSectionProps> = ({ awards }) => {
               className="glass-card glass-card-hover p-6 rounded-2xl space-y-3 relative flex flex-col justify-between transition-all duration-300"
             >
               <div>
-                <div className="flex items-center justify-between text-xs text-[#A78BFA] font-sans font-semibold">
+                <div className="flex items-center justify-between text-xs text-[#6D28D9] font-sans font-semibold">
                   <span>{item.organization}</span>
                   <span>{item.year}</span>
                 </div>

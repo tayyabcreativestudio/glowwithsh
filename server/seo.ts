@@ -1,6 +1,7 @@
 import type { DatabaseSchema } from './db';
 import type { Product } from '../src/types';
 import { initialProducts } from '../src/data/seedData';
+import { publicStorefrontSnapshot, renderStorefrontHome } from './storefront-render';
 
 export const SITE_ORIGIN = 'https://www.glowwithsh.com';
 export const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]!));
@@ -127,5 +128,8 @@ export function renderSeoHtml(template: string, path: string, db: DatabaseSchema
   const meta = `<title>${escapeHtml(seo.title)}</title><meta name="description" content="${escapeHtml(seo.description)}"><link rel="canonical" href="${escapeHtml(seo.canonical)}"><meta name="robots" content="${seo.index ? 'index,follow' : 'noindex,follow'}"><meta property="og:title" content="${escapeHtml(seo.title)}"><meta property="og:description" content="${escapeHtml(seo.description)}"><meta property="og:url" content="${escapeHtml(seo.canonical)}"><meta property="og:type" content="${seo.path.startsWith('/journal/') ? 'article' : 'website'}">${seo.image ? `<meta property="og:image" content="${escapeHtml(new URL(seo.image, SITE_ORIGIN).href)}">` : ''}<meta name="twitter:card" content="summary_large_image">${seo.schema.map(value => `<script type="application/ld+json" data-page-seo="true">${JSON.stringify(value).replace(/</g, '\\u003c')}</script>`).join('')}`;
   const social = `<meta name="twitter:title" content="${escapeHtml(seo.title)}"><meta name="twitter:description" content="${escapeHtml(seo.description)}">${seo.image ? `<meta name="twitter:image" content="${escapeHtml(new URL(seo.image, SITE_ORIGIN).href)}">` : ''}`;
   const cleaned = template.replace(/<title>[\s\S]*?<\/title>/gi, '').replace(/<meta\s+[^>]*(?:name="(?:description|robots|twitter:[^"]+)"|property="og:[^"]+")[^>]*>/gi, '').replace(/<link\s+[^>]*rel="canonical"[^>]*>/gi, '').replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, '');
-  return { ...seo, html: cleaned.replace('</head>', `${meta}${social}</head>`).replace('<div id="root"></div>', `<div id="root"><main style="max-width:72rem;margin:2rem auto;padding:1rem"><nav>${link('/', 'GlowWithSH')} · ${link('/shop', 'Shop')} · ${link('/contact', 'Contact')}</nav><h1>${escapeHtml(seo.h1)}</h1>${seo.content}</main></div>`) };
+  const snapshot = path === '/' ? publicStorefrontSnapshot(db) : null;
+  const initialContent = snapshot ? renderStorefrontHome(snapshot) : `<main style="max-width:72rem;margin:2rem auto;padding:1rem"><nav>${link('/', 'GlowWithSH')} · ${link('/shop', 'Shop')} · ${link('/contact', 'Contact')}</nav><h1>${escapeHtml(seo.h1)}</h1>${seo.content}</main>`;
+  const snapshotScript = snapshot ? `<script id="storefront-snapshot" type="application/json">${JSON.stringify(snapshot).replace(/</g, '\\u003c')}</script>` : '';
+  return { ...seo, html: cleaned.replace('</head>', `${meta}${social}</head>`).replace('<div id="root"></div>', `<div id="root">${initialContent}</div>${snapshotScript}`) };
 }

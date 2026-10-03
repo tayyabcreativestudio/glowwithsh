@@ -1,4 +1,5 @@
 import React from 'react';
+import { responsiveImage } from '../../utils/responsiveImage';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 interface EditorialSplitProps {
@@ -26,7 +27,8 @@ export const EditorialSplit: React.FC<EditorialSplitProps> = ({
           <div className="lg:col-span-6 order-2 lg:order-1 relative">
             <div className="aspect-4/3 rounded-2xl overflow-hidden shadow-lg" style={{ border: '1px solid rgba(167, 139, 250, 0.2)' }}>
               <img
-                src={image}
+                {...responsiveImage(image, '(min-width: 1024px) 50vw, 100vw')}
+                width="800" height="600"
                 alt="GlowWithSH Skincare Ritual Texture"
                 className="w-full h-full object-cover"
                 loading="lazy"
@@ -38,7 +40,7 @@ export const EditorialSplit: React.FC<EditorialSplitProps> = ({
 
           {/* Editorial Content */}
           <div className="lg:col-span-6 order-1 lg:order-2 space-y-6">
-            <div className="inline-flex items-center gap-2 text-xs uppercase font-sans tracking-[0.2em] text-[#A78BFA] font-semibold">
+            <div className="inline-flex items-center gap-2 text-xs uppercase font-sans tracking-[0.2em] text-[#6D28D9] font-semibold">
               <Sparkles size={14} />
               <span>THE GLOW PHILOSOPHY</span>
             </div>
@@ -54,7 +56,7 @@ export const EditorialSplit: React.FC<EditorialSplitProps> = ({
             <div className="pt-2">
               <button
                 onClick={onExplore}
-                className="inline-flex items-center gap-2 text-xs uppercase font-sans font-semibold tracking-[0.15em] text-[#7C3AED] border-b-2 border-[#7C3AED] pb-1 hover:border-[#A78BFA] hover:text-[#A78BFA] transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 text-xs uppercase font-sans font-semibold tracking-[0.15em] text-[#7C3AED] border-b-2 border-[#7C3AED] pb-1 hover:border-[#A78BFA] hover:text-[#6D28D9] transition-colors cursor-pointer"
               >
                 <span>Discover the Routine</span>
                 <ArrowRight size={14} />

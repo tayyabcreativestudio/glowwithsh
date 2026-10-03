@@ -52,7 +52,7 @@ try {
   for (const url of urls) {
     const { response, data } = await request(url);
     check(response.status === 200, `Sitemap route ${url} resolves`);
-    check(data.includes('<h1>') && data.includes('rel="canonical"'), `${url} initial HTML has content and canonical`);
+    check(/<h1[\s>]/.test(data) && data.includes('rel="canonical"'), `${url} initial HTML has content and canonical`);
     check((data.match(/<title>/g) || []).length === 1, `${url} has one title`);
   }
   check((await request('/nonexistent-test-page')).response.status === 404, 'Unknown route is real 404');

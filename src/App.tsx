@@ -1,4 +1,5 @@
 import { applyPageSeo } from './utils/seo';
+import { readStorefrontSnapshot } from './utils/storefrontSnapshot';
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { CartProvider, useCart } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
@@ -31,10 +32,10 @@ import { WhatsAppConcierge } from './components/common/WhatsAppConcierge';
 
 import { HomePage } from './pages/HomePage';
 import { ShopPage } from './pages/ShopPage';
-import { ProductDetailPage } from './pages/ProductDetailPage';
-import { CartPage } from './pages/CartPage';
-import { CheckoutPage } from './pages/CheckoutPage';
-import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
+const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage').then(m => ({ default: m.ProductDetailPage })));
+const CartPage = lazy(() => import('./pages/CartPage').then(m => ({ default: m.CartPage })));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
+const OrderConfirmationPage = lazy(() => import('./pages/OrderConfirmationPage').then(m => ({ default: m.OrderConfirmationPage })));
 import { NotFoundPage } from './pages/NotFoundPage';
 import { StorePage } from './pages/StorePage';
 
@@ -262,15 +263,16 @@ export const AppContent: React.FC = () => {
   const [toast, setToast] = useState<{ message: string; type?: 'info' | 'success' | 'warning' } | null>(null);
 
   // App Data States
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [homepageCMS, setHomepageCMS] = useState<HomepageCMS | null>(null);
-  const [founderCMS, setFounderCMS] = useState<FounderCMS | null>(null);
-  const [awards, setAwards] = useState<Award[]>([]);
-  const [socialSettings, setSocialSettings] = useState<InstagramSettings | null>(null);
-  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [snapshot] = useState(readStorefrontSnapshot);
+  const [products, setProducts] = useState<Product[]>(snapshot?.products || []);
+  const [categories, setCategories] = useState<Category[]>(snapshot?.categories || []);
+  const [homepageCMS, setHomepageCMS] = useState<HomepageCMS | null>(snapshot?.homepageCMS || null);
+  const [founderCMS, setFounderCMS] = useState<FounderCMS | null>(snapshot?.founderCMS || null);
+  const [awards, setAwards] = useState<Award[]>(snapshot?.awards || []);
+  const [socialSettings, setSocialSettings] = useState<InstagramSettings | null>(snapshot?.socialSettings || null);
+  const [posts, setPosts] = useState<BlogPost[]>(snapshot?.posts || []);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
-  const [storePages, setStorePages] = useState<StorePageRecord[]>([]);
+  const [storePages, setStorePages] = useState<StorePageRecord[]>(snapshot?.storePages || []);
 
   // Admin-specific data
   const [orders, setOrders] = useState<Order[]>([]);
@@ -278,7 +280,7 @@ export const AppContent: React.FC = () => {
   const [contacts, setContacts] = useState<ContactInquiry[]>([]);
   const [adminToken, setAdminToken] = useState<string | null>(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!snapshot);
 
   // Synchronize browser history with popstate
   useEffect(() => {

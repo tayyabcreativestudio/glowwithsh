@@ -35,7 +35,7 @@ export const ProductRail: React.FC<ProductRailProps> = ({
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
           <div>
-            <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#A78BFA] font-semibold">
+            <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#6D28D9] font-semibold">
               Curated Essentials
             </span>
             <h2 className="font-serif text-3xl sm:text-4xl text-[#1E1630] font-normal mt-1">

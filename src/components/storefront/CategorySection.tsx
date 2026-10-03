@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import { Category } from '../../types';
+import { responsiveImage } from '../../utils/responsiveImage';
 
 interface CategorySectionProps {
   categories: Category[];
@@ -31,7 +32,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="text-center max-w-2xl mx-auto mb-12 space-y-2">
-          <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#A78BFA] font-semibold">
+          <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#6D28D9] font-semibold">
             Categorized Care
           </span>
           <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#1E1630] font-normal">
@@ -61,8 +62,9 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               >
                 {/* Background Photography */}
                 <img
-                  src={imgSrc}
-                  alt={cat.name}
+                  {...responsiveImage(imgSrc, '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw')}
+                  alt=""
+                  width="600" height="800"
                   onError={() => handleImageError(cat.id)}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                   loading="lazy"

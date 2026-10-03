@@ -30,6 +30,7 @@ const PROMO_STORAGE_KEY = 'glowwithsh_promo_v1';
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>(() => {
+    if (typeof window === 'undefined') return [];
     try {
       const saved = localStorage.getItem(CART_STORAGE_KEY);
       if (saved) {
@@ -42,6 +43,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [promoState, setPromoState] = useState<{ code: string | null; amount: number; minSpend: number }>(() => {
+    if (typeof window === 'undefined') return { code: null, amount: 0, minSpend: 0 };
     try {
       const saved = localStorage.getItem(PROMO_STORAGE_KEY);
       if (saved) {

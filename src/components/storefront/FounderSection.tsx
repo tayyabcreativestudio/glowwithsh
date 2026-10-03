@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, Quote } from 'lucide-react';
 import { FounderCMS } from '../../types';
+import { responsiveImage } from '../../utils/responsiveImage';
 
 interface FounderSectionProps {
   cms: FounderCMS;
@@ -18,7 +19,8 @@ export const FounderSection: React.FC<FounderSectionProps> = ({ cms, onMeetFound
           <div className="lg:col-span-5 relative">
             <div className="aspect-3/4 rounded-2xl overflow-hidden shadow-xl bg-[#EDE8F5]" style={{ border: '1px solid rgba(167, 139, 250, 0.2)' }}>
               <img
-                src={cms.image}
+                {...responsiveImage(cms.image, '(min-width: 1024px) 42vw, 100vw')}
+                width="600" height="800"
                 alt={cms.founderName}
                 className="w-full h-full object-cover object-top"
                 loading="lazy"
@@ -45,7 +47,7 @@ export const FounderSection: React.FC<FounderSectionProps> = ({ cms, onMeetFound
           {/* Founder Narrative Column */}
           <div className="lg:col-span-7 space-y-6 pt-6 lg:pt-0">
             <div className="space-y-2">
-              <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#A78BFA] font-semibold">
+              <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#6D28D9] font-semibold">
                 Founder-Led Beauty
               </span>
               <h2 className="font-serif text-3xl sm:text-5xl text-[#1E1630] font-normal leading-[1.12]">
@@ -55,7 +57,7 @@ export const FounderSection: React.FC<FounderSectionProps> = ({ cms, onMeetFound
 
             {cms.quote && (
               <div className="relative pl-6 border-l-2 border-[#A78BFA] italic font-serif text-xl sm:text-2xl text-[#1E1630]">
-                <Quote size={20} className="text-[#A78BFA] mb-1 opacity-70" />
+                <Quote size={20} className="text-[#6D28D9] mb-1 opacity-70" />
                 <p>"{cms.quote}"</p>
               </div>
             )}

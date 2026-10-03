@@ -19,7 +19,7 @@ export const Badge: React.FC<BadgeProps> = ({ type, className = '' }) => {
   } else if (normalized === 'LIMITED') {
     style = 'bg-[#C084FC] text-white';
   } else if (normalized === 'SALE') {
-    style = 'bg-[#EF4444] text-white';
+    style = 'bg-[#B91C1C] text-white';
   } else if (normalized === 'FEATURED') {
     style = 'glass-badge text-[#7C3AED]';
   }

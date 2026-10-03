@@ -21,7 +21,7 @@ import {
 
 // Keep local development and a single-origin deployment simple, while allowing
 // a dedicated API subdomain in production (for example https://api.example.com/api).
-const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+const API_BASE = (import.meta.env?.VITE_API_URL || '/api').replace(/\/$/, '');
 
 function getAuthHeaders(): HeadersInit {
   return {

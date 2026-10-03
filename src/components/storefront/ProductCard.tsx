@@ -6,6 +6,7 @@ import { formatINR } from '../../utils/format';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { analyticsItem, trackCommerce } from '../../utils/analytics';
+import { responsiveImage } from '../../utils/responsiveImage';
 
 interface ProductCardProps {
   product: Product;
@@ -62,7 +63,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
       {/* Media Container */}
       <div className="relative w-full aspect-4/5 overflow-hidden bg-[#EDE8F5]/40">
         <img
-          src={isHovered && hasSecondaryImage ? secondaryImage : product.primaryImage}
+          {...responsiveImage(isHovered && hasSecondaryImage ? secondaryImage : product.primaryImage, '(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw')}
+          width="640" height="800"
           alt={illustrative ? `Illustrative stock photo for ${product.name}` : product.name}
           loading="lazy"
           className="w-full h-full object-cover object-center group-hover:scale-104 transition-transform duration-700 ease-out"
@@ -92,7 +94,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
           >
             <Heart
               size={15}
-              className={isWishlisted ? 'fill-[#A78BFA] text-[#A78BFA]' : 'text-[#1E1630]'}
+              className={isWishlisted ? 'fill-[#A78BFA] text-[#6D28D9]' : 'text-[#1E1630]'}
             />
           </button>
         </div>
@@ -103,7 +105,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
             Sold Out
           </div>
         ) : isLowStock ? (
-          <div className="absolute bottom-3 left-3 bg-[#A78BFA]/90 text-white text-[10px] font-sans uppercase tracking-wider px-2 py-0.5 rounded-lg">
+          <div className="absolute bottom-3 left-3 bg-[#6D28D9] text-white text-[10px] font-sans uppercase tracking-wider px-2 py-0.5 rounded-lg">
             Few left
           </div>
         ) : null}
@@ -135,7 +137,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
       {/* Information Container */}
       <div className="p-4 sm:p-5 flex flex-col justify-between flex-1 space-y-2">
         <div>
-          <span className="text-[10px] uppercase font-sans tracking-[0.15em] text-[#A78BFA] font-medium">
+          <span className="text-[10px] uppercase font-sans tracking-[0.15em] text-[#6D28D9] font-medium">
             {product.categoryName}
           </span>
           <h3 className="font-serif text-base sm:text-lg text-[#1E1630] group-hover:text-[#7C3AED] transition-colors font-medium leading-snug line-clamp-2 mt-0.5">

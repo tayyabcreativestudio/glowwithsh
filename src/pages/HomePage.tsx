@@ -89,7 +89,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
             <div>
-              <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#A78BFA] font-semibold flex items-center gap-1.5">
+              <span className="text-[11px] uppercase font-sans tracking-[0.2em] text-[#6D28D9] font-semibold flex items-center gap-1.5">
                 <ShoppingBag size={13} />
                 <span>OUR COMPLETE COLLECTION</span>
               </span>
@@ -103,7 +103,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             <button
               onClick={() => onNavigate('/shop')}
-              className="inline-flex items-center gap-2 text-xs uppercase font-sans font-semibold tracking-wider text-[#7C3AED] hover:text-[#A78BFA] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 text-xs uppercase font-sans font-semibold tracking-wider text-[#7C3AED] hover:text-[#6D28D9] transition-colors cursor-pointer"
             >
               <span>View in Shop</span>
               <ArrowRight size={14} />
